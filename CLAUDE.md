@@ -41,3 +41,7 @@ Before writing any Next.js code, read `node_modules/next/dist/docs/` for current
 - **Layouts receive named parallel-route slots as typed props** via `LayoutProps`. The root layout uses `LayoutProps<"/">`.
 
 - **Tailwind CSS v4** does not use `@tailwind base/components/utilities`. Use `@import "tailwindcss"` and define theme overrides with `@theme inline`.
+
+
+## Skills
+Usa siempre /frontend-design para diseñar interfaces de usuario. 
