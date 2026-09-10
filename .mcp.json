@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--output-dir",
+        "C:\\Users\\jafig\\Desktop\\DevTalles\\ClaudeCode\\05-arcade-vault\\.playwright-mcp-screenshots"
+      ]
+    }
+  }
+}
