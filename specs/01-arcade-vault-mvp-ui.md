@@ -1,6 +1,6 @@
 # SPEC 01 — MVP visual de Arcade Vault
 
-> **Status:** Approve
+> **Status:** implemented
 > **Depends on:** —
 > **Date:** 2026-09-09
 > **Objective:** Implementar todas las pantallas visuales de Arcade Vault como una SPA en Next.js 16 usando los templates de `references/templates` como referencia de diseño.
