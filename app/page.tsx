@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import type { Route, User, SavedScore } from '@/lib/types';
 import Nav from '@/components/Nav';
+import HomeScreen from '@/components/screens/HomeScreen';
 import Library from '@/components/screens/Library';
 import GameDetail from '@/components/screens/GameDetail';
 import GamePlayer from '@/components/screens/GamePlayer';
@@ -10,7 +11,7 @@ import Auth from '@/components/screens/Auth';
 import HallOfFame from '@/components/screens/HallOfFame';
 
 export default function Home() {
-  const [route, setRoute] = useState<Route>({ name: 'biblioteca' });
+  const [route, setRoute] = useState<Route>({ name: 'home' });
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -52,7 +53,9 @@ export default function Home() {
   };
 
   let screen: React.ReactNode = null;
-  if (route.name === 'biblioteca') {
+  if (route.name === 'home') {
+    screen = <HomeScreen navigate={navigate} />;
+  } else if (route.name === 'games') {
     screen = <Library navigate={navigate} />;
   } else if (route.name === 'detalle' && route.id) {
     screen = <GameDetail id={route.id} navigate={navigate} />;

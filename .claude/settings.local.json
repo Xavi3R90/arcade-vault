@@ -18,7 +18,9 @@
       "mcp__playwright__browser_resize",
       "Skill(update-config)",
       "Bash(Move-Item *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git *)",
+      "Bash(npx tsc *)"
     ]
   },
   "enableAllProjectMcpServers": true,

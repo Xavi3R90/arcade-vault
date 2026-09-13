@@ -66,7 +66,7 @@ export default function GameDetail({ id, navigate }: GameDetailProps) {
             </button>
             <button
               className="btn ghost lg"
-              onClick={() => navigate({ name: 'biblioteca' })}
+              onClick={() => navigate({ name: 'games' })}
             >
               VOLVER AL VAULT
             </button>

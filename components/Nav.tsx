@@ -15,8 +15,8 @@ export default function Nav({ route, navigate, user, onSignOut }: NavProps) {
 
   const isActive = (name: string) =>
     route.name === name ||
-    (name === 'biblioteca' && route.name === 'detalle') ||
-    (name === 'biblioteca' && route.name === 'player');
+    (name === 'games' && route.name === 'detalle') ||
+    (name === 'games' && route.name === 'player');
 
   const go = (r: Route) => {
     setOpen(false);
@@ -26,7 +26,7 @@ export default function Nav({ route, navigate, user, onSignOut }: NavProps) {
   return (
     <>
       <nav className="av-nav">
-        <div className="logo" onClick={() => go({ name: 'biblioteca' })}>
+        <div className="logo" onClick={() => go({ name: 'games' })}>
           <div className="logo-mark"></div>
           <div className="logo-text neon-cyan">
             ARCADE <span className="neon-magenta">VAULT</span>
@@ -35,8 +35,8 @@ export default function Nav({ route, navigate, user, onSignOut }: NavProps) {
 
         <div className="links">
           <a
-            className={isActive('biblioteca') ? 'active' : ''}
-            onClick={() => go({ name: 'biblioteca' })}
+            className={isActive('games') ? 'active' : ''}
+            onClick={() => go({ name: 'games' })}
           >
             Biblioteca
           </a>
@@ -83,8 +83,8 @@ export default function Nav({ route, navigate, user, onSignOut }: NavProps) {
           MENÚ
         </div>
         <a
-          className={isActive('biblioteca') ? 'active' : ''}
-          onClick={() => go({ name: 'biblioteca' })}
+          className={isActive('games') ? 'active' : ''}
+          onClick={() => go({ name: 'games' })}
         >
           Biblioteca
         </a>

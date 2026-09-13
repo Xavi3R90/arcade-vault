@@ -104,7 +104,7 @@ export default function HallOfFame({ user, navigate }: HallOfFameProps) {
       </div>
 
       <div style={{ textAlign: 'center', marginTop: 32 }}>
-        <button className="btn lg" onClick={() => navigate({ name: 'biblioteca' })}>
+        <button className="btn lg" onClick={() => navigate({ name: 'games' })}>
           VOLVER A LA BIBLIOTECA
         </button>
       </div>
