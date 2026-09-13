@@ -17,7 +17,7 @@ export default function Auth({ navigate, onLogin }: AuthProps) {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     onLogin({ name: (user || 'PLAYER1').toUpperCase().slice(0, 10) });
-    navigate({ name: 'biblioteca' });
+    navigate({ name: 'games' });
   };
 
   return (
@@ -80,7 +80,7 @@ export default function Auth({ navigate, onLogin }: AuthProps) {
         <button
           className="btn ghost"
           style={{ width: '100%', marginTop: 10 }}
-          onClick={() => { onLogin(null); navigate({ name: 'biblioteca' }); }}
+          onClick={() => { onLogin(null); navigate({ name: 'games' }); }}
         >
           JUGAR COMO INVITADO
         </button>
