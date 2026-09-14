@@ -20,7 +20,10 @@
       "Bash(Move-Item *)",
       "Bash(git push *)",
       "Bash(git *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(npm install *)",
+      "mcp__playwright__browser_find",
+      "mcp__playwright__browser_fill_form"
     ]
   },
   "enableAllProjectMcpServers": true,

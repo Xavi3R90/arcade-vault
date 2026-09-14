@@ -9,6 +9,7 @@ import GameDetail from '@/components/screens/GameDetail';
 import GamePlayer from '@/components/screens/GamePlayer';
 import Auth from '@/components/screens/Auth';
 import HallOfFame from '@/components/screens/HallOfFame';
+import AboutScreen from '@/components/screens/AboutScreen';
 
 export default function Home() {
   const [route, setRoute] = useState<Route>({ name: 'home' });
@@ -65,6 +66,8 @@ export default function Home() {
     screen = <Auth navigate={navigate} onLogin={handleLogin} />;
   } else if (route.name === 'salon') {
     screen = <HallOfFame user={user} navigate={navigate} />;
+  } else if (route.name === 'about') {
+    screen = <AboutScreen navigate={navigate} />;
   }
 
   return (
