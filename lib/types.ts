@@ -1,4 +1,4 @@
-export type RouteName = 'home' | 'games' | 'detalle' | 'player' | 'auth' | 'salon';
+export type RouteName = 'home' | 'games' | 'detalle' | 'player' | 'auth' | 'salon' | 'about';
 
 export interface Route {
   name: RouteName;

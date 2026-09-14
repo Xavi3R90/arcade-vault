@@ -46,6 +46,12 @@ export default function Nav({ route, navigate, user, onSignOut }: NavProps) {
           >
             Salón de la Fama
           </a>
+          <a
+            className={isActive('about') ? 'active' : ''}
+            onClick={() => go({ name: 'about' })}
+          >
+            Acerca
+          </a>
         </div>
 
         <div className="spacer"></div>
@@ -93,6 +99,12 @@ export default function Nav({ route, navigate, user, onSignOut }: NavProps) {
           onClick={() => go({ name: 'salon' })}
         >
           Salón de la Fama
+        </a>
+        <a
+          className={isActive('about') ? 'active' : ''}
+          onClick={() => go({ name: 'about' })}
+        >
+          Acerca
         </a>
         <a
           className={isActive('auth') ? 'active' : ''}
