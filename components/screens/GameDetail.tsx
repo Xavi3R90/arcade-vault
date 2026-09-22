@@ -1,17 +1,44 @@
 'use client'
 
-import { useMemo } from 'react'
-import { GAMES, seededScores } from '@/lib/data'
-import type { Route } from '@/lib/types'
+import { useState, useEffect, useMemo } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import type { Route, Game, ScoreRow } from '@/lib/types'
 
 interface GameDetailProps {
+  games: Game[]
   id: string
   navigate: (r: Route) => void
 }
 
-export default function GameDetail({ id, navigate }: GameDetailProps) {
-  const game = useMemo(() => GAMES.find((g) => g.id === id), [id])
-  const scores = useMemo(() => seededScores(id.length * 17 + 3, 10), [id])
+export default function GameDetail({ games, id, navigate }: GameDetailProps) {
+  const game = useMemo(() => games.find((g) => g.id === id), [games, id])
+  const [scores, setScores] = useState<ScoreRow[]>([])
+  const [loadingScores, setLoadingScores] = useState(true)
+
+  useEffect(() => {
+    setLoadingScores(true)
+    setScores([])
+    createClient()
+      .from('scores')
+      .select('*')
+      .eq('game_id', id)
+      .order('score', { ascending: false })
+      .limit(10)
+      .then(({ data }) => {
+        setScores(
+          (data ?? []).map((r, i) => {
+            const d = new Date(r.created_at)
+            return {
+              rank: i + 1,
+              name: r.player_name,
+              score: r.score,
+              date: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`,
+            }
+          }),
+        )
+        setLoadingScores(false)
+      })
+  }, [id])
 
   if (!game) return null
 
@@ -75,23 +102,51 @@ export default function GameDetail({ id, navigate }: GameDetailProps) {
       <aside>
         <div className="leaderboard">
           <h3>MEJORES PUNTUACIONES</h3>
-          {scores.map((r, i) => (
+          {loadingScores ? (
             <div
-              key={r.name}
-              className={
-                'lb-row' + (i === 0 ? ' top1' : i === 1 ? ' top2' : i === 2 ? ' top3' : '')
-              }
+              className="pixel"
+              style={{
+                fontSize: 11,
+                color: 'var(--ink-faint)',
+                padding: '24px 0',
+                textAlign: 'center',
+                letterSpacing: '0.16em',
+              }}
             >
-              <div className="rk">#{String(r.rank).padStart(2, '0')}</div>
-              <div className="pl">
-                {r.name}
-                <div style={{ fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.1em' }}>
-                  {r.date}
-                </div>
-              </div>
-              <div className="sc">{r.score.toLocaleString('es-ES')}</div>
+              CARGANDO<span className="blink">_</span>
             </div>
-          ))}
+          ) : scores.length === 0 ? (
+            <div
+              className="pixel"
+              style={{
+                fontSize: 11,
+                color: 'var(--ink-faint)',
+                padding: '24px 0',
+                textAlign: 'center',
+                letterSpacing: '0.16em',
+              }}
+            >
+              SIN PUNTUACIONES TODAVÍA
+            </div>
+          ) : (
+            scores.map((r, i) => (
+              <div
+                key={r.name + i}
+                className={
+                  'lb-row' + (i === 0 ? ' top1' : i === 1 ? ' top2' : i === 2 ? ' top3' : '')
+                }
+              >
+                <div className="rk">#{String(r.rank).padStart(2, '0')}</div>
+                <div className="pl">
+                  {r.name}
+                  <div style={{ fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.1em' }}>
+                    {r.date}
+                  </div>
+                </div>
+                <div className="sc">{r.score.toLocaleString('es-ES')}</div>
+              </div>
+            ))
+          )}
         </div>
       </aside>
     </div>

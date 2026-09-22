@@ -30,7 +30,9 @@
       "mcp__supabase__list_tables",
       "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\('@supabase/supabase-js:', p.dependencies['@supabase/supabase-js']\\); console.log\\('@supabase/ssr:', p.dependencies['@supabase/ssr']\\);\")",
       "mcp__supabase__get_project_url",
-      "mcp__supabase__get_publishable_keys"
+      "mcp__supabase__get_publishable_keys",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__execute_sql"
     ]
   },
   "enableAllProjectMcpServers": true,
