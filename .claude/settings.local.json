@@ -23,7 +23,10 @@
       "Bash(npx tsc *)",
       "Bash(npm install *)",
       "mcp__playwright__browser_find",
-      "mcp__playwright__browser_fill_form"
+      "mcp__playwright__browser_fill_form",
+      "PowerShell(Add-Type -AssemblyName presentationCore; $p = New-Object System.Windows.Media.MediaPlayer; $p.Open\\([Uri]'C:\\\\Users\\\\jafig\\\\Desktop\\\\DevTalles\\\\ClaudeCode\\\\claudecode-finished.mp3'\\); $p.Play\\(\\); Start-Sleep -Seconds 4; $p.Close\\(\\); Write-Output \"OK\")",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\jafig\\\\Desktop\\\\DevTalles\\\\ClaudeCode\\\\05-arcade-vault\"; $result = '{\"tool_name\":\"Edit\",\"tool_input\":{\"file_path\":\"demos/Demo.tsx\"}}' | & powershell -NoProfile -File \".\\\\.claude\\\\hooks\\\\format.ps1\"; Write-Output \"Exit: $LASTEXITCODE\"; Get-Content \"demos\\\\Demo.tsx\")"
     ]
   },
   "enableAllProjectMcpServers": true,
