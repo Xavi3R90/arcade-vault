@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { Route, User, SavedScore } from '@/lib/types'
+import type { Route, User, SavedScore, Game } from '@/lib/types'
+import { createClient } from '@/lib/supabase/client'
 import Nav from '@/components/Nav'
 import HomeScreen from '@/components/screens/HomeScreen'
 import Library from '@/components/screens/Library'
@@ -15,6 +16,7 @@ import AsteroidsScreen from '@/components/screens/AsteroidsScreen'
 export default function Home() {
   const [route, setRoute] = useState<Route>({ name: 'home' })
   const [user, setUser] = useState<User | null>(null)
+  const [games, setGames] = useState<Game[]>([])
 
   useEffect(() => {
     try {
@@ -23,6 +25,23 @@ export default function Home() {
     } catch {
       // ignore
     }
+  }, [])
+
+  useEffect(() => {
+    createClient()
+      .from('games')
+      .select('*')
+      .order('title')
+      .then(({ data }) => {
+        if (data) {
+          setGames(
+            data.map(({ play_route, ...g }) => ({
+              ...g,
+              playRoute: play_route ?? undefined,
+            })) as Game[],
+          )
+        }
+      })
   }, [])
 
   const navigate = (r: Route) => {
@@ -45,30 +64,33 @@ export default function Home() {
   }
 
   const handleSaveScore = (entry: SavedScore) => {
-    try {
-      const all: SavedScore[] = JSON.parse(localStorage.getItem('av_scores') || '[]')
-      all.push(entry)
-      localStorage.setItem('av_scores', JSON.stringify(all))
-    } catch {
-      // ignore
-    }
+    createClient()
+      .from('scores')
+      .insert({ game_id: entry.game, player_name: entry.name, score: entry.score })
+      .catch(() => {})
   }
 
   let screen: React.ReactNode = null
   if (route.name === 'home') {
-    screen = <HomeScreen navigate={navigate} />
+    screen = <HomeScreen games={games} navigate={navigate} />
   } else if (route.name === 'games') {
-    screen = <Library navigate={navigate} />
+    screen = <Library games={games} navigate={navigate} />
   } else if (route.name === 'detalle' && route.id) {
-    screen = <GameDetail id={route.id} navigate={navigate} />
+    screen = <GameDetail games={games} id={route.id} navigate={navigate} />
   } else if (route.name === 'player' && route.id) {
     screen = (
-      <GamePlayer id={route.id} user={user} navigate={navigate} onSaveScore={handleSaveScore} />
+      <GamePlayer
+        games={games}
+        id={route.id}
+        user={user}
+        navigate={navigate}
+        onSaveScore={handleSaveScore}
+      />
     )
   } else if (route.name === 'auth') {
     screen = <Auth navigate={navigate} onLogin={handleLogin} />
   } else if (route.name === 'salon') {
-    screen = <HallOfFame user={user} navigate={navigate} />
+    screen = <HallOfFame games={games} user={user} navigate={navigate} />
   } else if (route.name === 'about') {
     screen = <AboutScreen navigate={navigate} />
   } else if (route.name === 'asteroids') {
