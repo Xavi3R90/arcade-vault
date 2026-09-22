@@ -1,27 +1,28 @@
-'use client';
+'use client'
 
-import { useState, useMemo } from 'react';
-import { GAMES, CATS } from '@/lib/data';
-import type { Route } from '@/lib/types';
-import GameCard from '@/components/GameCard';
+import { useState, useMemo } from 'react'
+import type { Route, Game } from '@/lib/types'
+import GameCard from '@/components/GameCard'
 
 interface LibraryProps {
-  navigate: (r: Route) => void;
+  games: Game[]
+  navigate: (r: Route) => void
 }
 
-export default function Library({ navigate }: LibraryProps) {
-  const [q, setQ] = useState('');
-  const [cat, setCat] = useState('TODOS');
+export default function Library({ games, navigate }: LibraryProps) {
+  const [q, setQ] = useState('')
+  const [cat, setCat] = useState('TODOS')
+
+  const cats = useMemo(() => ['TODOS', ...new Set(games.map((g) => g.cat))], [games])
 
   const filtered = useMemo(
     () =>
-      GAMES.filter(
+      games.filter(
         (g) =>
-          (cat === 'TODOS' || g.cat === cat) &&
-          g.title.toLowerCase().includes(q.toLowerCase()),
+          (cat === 'TODOS' || g.cat === cat) && g.title.toLowerCase().includes(q.toLowerCase()),
       ),
-    [q, cat],
-  );
+    [games, q, cat],
+  )
 
   return (
     <div className="fade-in">
@@ -42,7 +43,7 @@ export default function Library({ navigate }: LibraryProps) {
           />
         </div>
         <div className="av-chips">
-          {CATS.map((c) => (
+          {cats.map((c) => (
             <button
               key={c}
               className={'chip' + (cat === c ? ' active' : '')}
@@ -82,5 +83,5 @@ export default function Library({ navigate }: LibraryProps) {
         )}
       </div>
     </div>
-  );
+  )
 }
