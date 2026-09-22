@@ -1,6 +1,6 @@
 # SPEC 06 — Catálogo de juegos y leaderboard en Supabase
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** SPEC 04
 > **Date:** 2026-09-22
 > **Objective:** Migrar el catálogo de juegos y los scores a Supabase (tablas `games` y `scores`), eliminar los datos simulados de `lib/data.ts` y mostrar rankings reales en `HallOfFame`.
