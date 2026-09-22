@@ -28,7 +28,9 @@
       "PowerShell(Get-Content *)",
       "PowerShell(Set-Location \"C:\\\\Users\\\\jafig\\\\Desktop\\\\DevTalles\\\\ClaudeCode\\\\05-arcade-vault\"; $result = '{\"tool_name\":\"Edit\",\"tool_input\":{\"file_path\":\"demos/Demo.tsx\"}}' | & powershell -NoProfile -File \".\\\\.claude\\\\hooks\\\\format.ps1\"; Write-Output \"Exit: $LASTEXITCODE\"; Get-Content \"demos\\\\Demo.tsx\")",
       "mcp__supabase__list_tables",
-      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\('@supabase/supabase-js:', p.dependencies['@supabase/supabase-js']\\); console.log\\('@supabase/ssr:', p.dependencies['@supabase/ssr']\\);\")"
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\('@supabase/supabase-js:', p.dependencies['@supabase/supabase-js']\\); console.log\\('@supabase/ssr:', p.dependencies['@supabase/ssr']\\);\")",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__get_publishable_keys"
     ]
   },
   "enableAllProjectMcpServers": true,
