@@ -1,22 +1,19 @@
-'use client';
+'use client'
 
-import { useMemo } from 'react';
-import { GAMES, seededScores } from '@/lib/data';
-import type { Route } from '@/lib/types';
+import { useMemo } from 'react'
+import { GAMES, seededScores } from '@/lib/data'
+import type { Route } from '@/lib/types'
 
 interface GameDetailProps {
-  id: string;
-  navigate: (r: Route) => void;
+  id: string
+  navigate: (r: Route) => void
 }
 
 export default function GameDetail({ id, navigate }: GameDetailProps) {
-  const game = useMemo(() => GAMES.find((g) => g.id === id), [id]);
-  const scores = useMemo(
-    () => seededScores(id.length * 17 + 3, 10),
-    [id],
-  );
+  const game = useMemo(() => GAMES.find((g) => g.id === id), [id])
+  const scores = useMemo(() => seededScores(id.length * 17 + 3, 10), [id])
 
-  if (!game) return null;
+  if (!game) return null
 
   return (
     <div className="av-detail fade-in">
@@ -60,14 +57,15 @@ export default function GameDetail({ id, navigate }: GameDetailProps) {
           <div className="detail-actions">
             <button
               className="btn xl pulse"
-              onClick={() => navigate({ name: 'player', id: game.id })}
+              onClick={() =>
+                game.playRoute
+                  ? navigate({ name: game.playRoute })
+                  : navigate({ name: 'player', id: game.id })
+              }
             >
-              ▶  JUGAR AHORA
+              ▶ JUGAR AHORA
             </button>
-            <button
-              className="btn ghost lg"
-              onClick={() => navigate({ name: 'games' })}
-            >
+            <button className="btn ghost lg" onClick={() => navigate({ name: 'games' })}>
               VOLVER AL VAULT
             </button>
           </div>
@@ -81,8 +79,7 @@ export default function GameDetail({ id, navigate }: GameDetailProps) {
             <div
               key={r.name}
               className={
-                'lb-row' +
-                (i === 0 ? ' top1' : i === 1 ? ' top2' : i === 2 ? ' top3' : '')
+                'lb-row' + (i === 0 ? ' top1' : i === 1 ? ' top2' : i === 2 ? ' top3' : '')
               }
             >
               <div className="rk">#{String(r.rank).padStart(2, '0')}</div>
@@ -98,5 +95,5 @@ export default function GameDetail({ id, navigate }: GameDetailProps) {
         </div>
       </aside>
     </div>
-  );
+  )
 }
