@@ -20,6 +20,7 @@
 - `components/screens/GameDetail.tsx`: recibir `games: Game[]` como prop; eliminar import de `lib/data.ts`.
 - `components/screens/GamePlayer.tsx`: recibir `games: Game[]` como prop; eliminar import de `lib/data.ts`.
 - `components/screens/HallOfFame.tsx`: recibir `games: Game[]` como prop; fetch de `scores` tabla Supabase filtrado por `game_id`; mostrar "tu mejor marca" leyendo scores reales del usuario por nombre; eliminar dependencia de `seededScores`.
+- `components/screens/GameDetail.tsx`: restaurar el `<aside>` de leaderboard con datos reales de Supabase — fetch de `scores` filtrado por `game_id`, ordenado por score desc, limit 10; mostrar "SIN PUNTUACIONES TODAVÍA" si la tabla está vacía para ese juego.
 
 **Out of scope:**
 
@@ -27,7 +28,6 @@
 - Row Level Security (RLS) en las tablas — se añadirá en el spec de auth.
 - Tiempo real (Supabase Realtime) — spec posterior.
 - Paginación del leaderboard.
-- Score preview en `GameDetail` (el carrusel de scores mock de la ficha de juego).
 - Admin CRUD para añadir/editar juegos desde la UI.
 - Migración de `av_scores` de `localStorage` a Supabase para scores previos (se descartan al cambiar de almacén).
 
@@ -106,7 +106,9 @@ No se añaden nuevas interfaces: `Game` y `SavedScore` en `lib/types.ts` ya cubr
    - Actualizar pódium y tabla con datos reales.
    - Test: después de jugar Asteroids y guardar puntuación, navegar al Salón de la Fama → aparece el score real bajo la pestaña "ASTEROIDS".
 
-10. **Verificación final:** ejecutar `npm run build`. Test: build termina sin errores de TypeScript ni de compilación. Navegar por todas las pantallas sin errores de consola.
+10. **Restaurar leaderboard en `GameDetail.tsx`:** añadir de nuevo el `<aside>` con fetch real de `scores` desde Supabase filtrado por `game_id`, ordenado por score desc limit 10; mostrar "SIN PUNTUACIONES TODAVÍA" si no hay filas. Test: la ficha de Asteroids muestra el leaderboard real tras jugar una partida.
+
+11. **Verificación final:** ejecutar `npm run build`. Test: build termina sin errores de TypeScript ni de compilación. Navegar por todas las pantallas sin errores de consola.
 
 ---
 
