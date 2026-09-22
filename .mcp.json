@@ -7,6 +7,10 @@
         "--output-dir",
         "C:\\Users\\jafig\\Desktop\\DevTalles\\ClaudeCode\\05-arcade-vault\\.playwright-mcp-screenshots"
       ]
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=wjcubsuhyngbuqzjbrfm&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching"
     }
   }
 }
