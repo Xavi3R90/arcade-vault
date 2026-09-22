@@ -1,6 +1,6 @@
 # SPEC 05 — Juego Asteroids
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** SPEC 01
 > **Date:** 2026-09-22
 > **Objective:** Adaptar el juego Asteroids de `references/started-games/02-asteroids/` a un componente React con canvas responsivo, HUD en React, modal de game over que guarda en `localStorage['av_scores']`, y ruta propia `'asteroids'` en el sistema de navegación.
