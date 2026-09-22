@@ -1,17 +1,16 @@
 'use client'
 
 import { useMemo } from 'react'
-import { GAMES, seededScores } from '@/lib/data'
-import type { Route } from '@/lib/types'
+import type { Route, Game } from '@/lib/types'
 
 interface GameDetailProps {
+  games: Game[]
   id: string
   navigate: (r: Route) => void
 }
 
-export default function GameDetail({ id, navigate }: GameDetailProps) {
-  const game = useMemo(() => GAMES.find((g) => g.id === id), [id])
-  const scores = useMemo(() => seededScores(id.length * 17 + 3, 10), [id])
+export default function GameDetail({ games, id, navigate }: GameDetailProps) {
+  const game = useMemo(() => games.find((g) => g.id === id), [games, id])
 
   if (!game) return null
 
@@ -71,29 +70,6 @@ export default function GameDetail({ id, navigate }: GameDetailProps) {
           </div>
         </div>
       </div>
-
-      <aside>
-        <div className="leaderboard">
-          <h3>MEJORES PUNTUACIONES</h3>
-          {scores.map((r, i) => (
-            <div
-              key={r.name}
-              className={
-                'lb-row' + (i === 0 ? ' top1' : i === 1 ? ' top2' : i === 2 ? ' top3' : '')
-              }
-            >
-              <div className="rk">#{String(r.rank).padStart(2, '0')}</div>
-              <div className="pl">
-                {r.name}
-                <div style={{ fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.1em' }}>
-                  {r.date}
-                </div>
-              </div>
-              <div className="sc">{r.score.toLocaleString('es-ES')}</div>
-            </div>
-          ))}
-        </div>
-      </aside>
     </div>
   )
 }
