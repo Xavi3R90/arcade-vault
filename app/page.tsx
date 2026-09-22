@@ -63,11 +63,14 @@ export default function Home() {
     localStorage.removeItem('av_user')
   }
 
-  const handleSaveScore = (entry: SavedScore) => {
-    createClient()
-      .from('scores')
-      .insert({ game_id: entry.game, player_name: entry.name, score: entry.score })
-      .catch(() => {})
+  const handleSaveScore = async (entry: SavedScore) => {
+    try {
+      await createClient()
+        .from('scores')
+        .insert({ game_id: entry.game, player_name: entry.name, score: entry.score })
+    } catch {
+      // silent fail
+    }
   }
 
   let screen: React.ReactNode = null
