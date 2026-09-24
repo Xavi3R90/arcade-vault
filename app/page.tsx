@@ -12,6 +12,7 @@ import Auth from '@/components/screens/Auth'
 import HallOfFame from '@/components/screens/HallOfFame'
 import AboutScreen from '@/components/screens/AboutScreen'
 import AsteroidsScreen from '@/components/screens/AsteroidsScreen'
+import TetrisScreen from '@/components/screens/TetrisScreen'
 
 export default function Home() {
   const [route, setRoute] = useState<Route>({ name: 'home' })
@@ -98,6 +99,8 @@ export default function Home() {
     screen = <AboutScreen navigate={navigate} />
   } else if (route.name === 'asteroids') {
     screen = <AsteroidsScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
+  } else if (route.name === 'tetris') {
+    screen = <TetrisScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
   }
 
   return (

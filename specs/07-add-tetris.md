@@ -1,6 +1,6 @@
 # SPEC 07 — Juego Tetris
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** SPEC 06
 > **Date:** 2026-09-24
 > **Objetivo:** Portar el Tetris de `references/started-games/03-tetris/` a un componente React con canvas portrait 300×600, HUD lateral en React, modal de game over que guarda en Supabase, y ruta propia `'tetris'` en el sistema de navegación.
