@@ -832,6 +832,41 @@ a {
   filter: drop-shadow(0 0 6px rgba(0, 245, 255, 0.4));
 }
 
+.cover-tetris {
+  background: radial-gradient(ellipse at 50% 0%, #002030, #000);
+}
+/* I-piece — 4 cyan blocks in a horizontal row, centred */
+.cover-tetris::before {
+  content: '';
+  position: absolute;
+  inset: 28% 12% 60% 12%;
+  background:
+    linear-gradient(var(--cyan), var(--cyan)) 0 0/22% 100% no-repeat,
+    linear-gradient(var(--cyan), var(--cyan)) 26% 0/22% 100% no-repeat,
+    linear-gradient(var(--cyan), var(--cyan)) 52% 0/22% 100% no-repeat,
+    linear-gradient(var(--cyan), var(--cyan)) 78% 0/22% 100% no-repeat;
+  filter: drop-shadow(0 0 12px rgba(0, 245, 255, 0.9));
+}
+/* Partial board — 3 rows × 4 cols of coloured blocks at the bottom */
+.cover-tetris::after {
+  content: '';
+  position: absolute;
+  inset: 64% 12% 4% 12%;
+  background:
+    linear-gradient(var(--cyan), var(--cyan)) 0 0/22% 30% no-repeat,
+    linear-gradient(#ba68c8, #ba68c8) 26% 0/22% 30% no-repeat,
+    linear-gradient(#e57373, #e57373) 52% 0/22% 30% no-repeat,
+    linear-gradient(#ffd54f, #ffd54f) 78% 0/22% 30% no-repeat,
+    linear-gradient(#81c784, #81c784) 0 35%/22% 30% no-repeat,
+    linear-gradient(var(--cyan), var(--cyan)) 26% 35%/48% 30% no-repeat,
+    linear-gradient(#ffb74d, #ffb74d) 78% 35%/22% 30% no-repeat,
+    linear-gradient(#ba68c8, #ba68c8) 0 70%/48% 30% no-repeat,
+    linear-gradient(#e57373, #e57373) 52% 70%/22% 30% no-repeat,
+    linear-gradient(#ffd54f, #ffd54f) 78% 70%/22% 30% no-repeat;
+  image-rendering: pixelated;
+  opacity: 0.8;
+}
+
 /* ===== detail screen ===== */
 .av-detail {
   display: grid;
