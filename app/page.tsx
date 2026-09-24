@@ -13,6 +13,7 @@ import HallOfFame from '@/components/screens/HallOfFame'
 import AboutScreen from '@/components/screens/AboutScreen'
 import AsteroidsScreen from '@/components/screens/AsteroidsScreen'
 import TetrisScreen from '@/components/screens/TetrisScreen'
+import ArkanoidScreen from '@/components/screens/ArkanoidScreen'
 
 export default function Home() {
   const [route, setRoute] = useState<Route>({ name: 'home' })
@@ -101,6 +102,8 @@ export default function Home() {
     screen = <AsteroidsScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
   } else if (route.name === 'tetris') {
     screen = <TetrisScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
+  } else if (route.name === 'arkanoid') {
+    screen = <ArkanoidScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
   }
 
   return (
