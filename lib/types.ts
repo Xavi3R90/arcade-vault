@@ -1,5 +1,5 @@
 export type RouteName =
-  'home' | 'games' | 'detalle' | 'player' | 'auth' | 'salon' | 'about' | 'asteroids'
+  'home' | 'games' | 'detalle' | 'player' | 'auth' | 'salon' | 'about' | 'asteroids' | 'tetris'
 
 export interface Route {
   name: RouteName
