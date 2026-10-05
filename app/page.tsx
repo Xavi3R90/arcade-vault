@@ -14,6 +14,7 @@ import AboutScreen from '@/components/screens/AboutScreen'
 import AsteroidsScreen from '@/components/screens/AsteroidsScreen'
 import TetrisScreen from '@/components/screens/TetrisScreen'
 import ArkanoidScreen from '@/components/screens/ArkanoidScreen'
+import SnakeScreen from '@/components/screens/SnakeScreen'
 
 export default function Home() {
   const [route, setRoute] = useState<Route>({ name: 'home' })
@@ -104,6 +105,8 @@ export default function Home() {
     screen = <TetrisScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
   } else if (route.name === 'arkanoid') {
     screen = <ArkanoidScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
+  } else if (route.name === 'snake') {
+    screen = <SnakeScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
   }
 
   return (
