@@ -685,20 +685,34 @@ a {
 }
 
 .cover-snake {
-  background: linear-gradient(135deg, #003a2a, #0a0a18);
+  background: radial-gradient(circle at 40% 50%, #003d20, #060f06);
 }
+/* Snake body — U-shape, 5 segments, colour fades from bright head to dark tail */
+.cover-snake::before {
+  content: '';
+  position: absolute;
+  inset: 26% 18% 34% 18%;
+  background:
+    linear-gradient(#00ff55, #00ff55) 0% 0% / 28% 40% no-repeat,
+    linear-gradient(#00cc44, #00cc44) 36% 0% / 28% 40% no-repeat,
+    linear-gradient(#00aa33, #00aa33) 72% 0% / 28% 62% no-repeat,
+    linear-gradient(#008f25, #008f25) 36% 60% / 28% 40% no-repeat,
+    linear-gradient(#006a1a, #006a1a) 0% 60% / 28% 40% no-repeat;
+  filter: drop-shadow(0 0 9px rgba(0, 255, 80, 0.65));
+}
+/* Food — bright red dot at the side the head is facing */
 .cover-snake::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(circle at 70% 50%, var(--magenta) 0 6px, transparent 7px),
-    linear-gradient(90deg, var(--green) 0 40px, transparent 40px) 20% 50% / 200px 12px no-repeat,
-    linear-gradient(90deg, var(--green) 0 12px, transparent 12px) calc(20% + 40px)
-      calc(50% - 12px) / 12px 12px no-repeat,
-    linear-gradient(90deg, var(--green) 0 12px, transparent 12px) calc(20% + 28px)
-      calc(50% - 12px) / 12px 12px no-repeat;
-  filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.6));
+  left: 73%;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #ff3a44;
+  box-shadow:
+    0 0 6px rgba(255, 58, 68, 0.9),
+    0 0 16px rgba(255, 58, 68, 0.5);
 }
 
 .cover-glot {

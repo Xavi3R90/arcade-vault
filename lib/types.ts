@@ -9,6 +9,7 @@ export type RouteName =
   | 'asteroids'
   | 'tetris'
   | 'arkanoid'
+  | 'snake'
 
 export interface Route {
   name: RouteName
