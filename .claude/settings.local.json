@@ -33,7 +33,10 @@
       "mcp__supabase__get_publishable_keys",
       "mcp__supabase__apply_migration",
       "mcp__supabase__execute_sql",
-      "PowerShell(Copy-Item *)"
+      "PowerShell(Copy-Item *)",
+      "PowerShell(Get-ChildItem -Force -Directory | Where-Object { $_.Name -ne 'node_modules' -and $_.Name -ne '.next' -and $_.Name -ne '.git' } | ForEach-Object { $_.Name })",
+      "PowerShell(Get-ChildItem -Recurse -File -Path .\\\\app, .\\\\components, .\\\\lib, .\\\\specs, .\\\\.claude | Where-Object { $_.FullName -notmatch 'node_modules' } | ForEach-Object { $_.FullName.Replace\\(\\(Get-Location\\).Path + '\\\\', ''\\) })",
+      "PowerShell(Get-ChildItem specs | ForEach-Object { $_.Name })"
     ]
   },
   "enableAllProjectMcpServers": true,
