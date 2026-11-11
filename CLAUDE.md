@@ -48,6 +48,7 @@ lib/
   supabase/client.ts    # createBrowserClient — uso cliente
   supabase/server.ts    # createServerClient — uso Server Components / Route Handlers
 specs/                  # Specs 01–09 (MVP UI, Home, About, Supabase, juegos, …)
+  game-jam/<slug>/      # 3 specs por juego generados por el agente game-jam (01 MVP, 02 niveles, 03 pulido)
 references/             # Juegos originales en HTML/JS para portar
 .claude/
   settings.json         # Hook PostToolUse → format.ps1
@@ -113,7 +114,7 @@ Antes de escribir código Next.js, leer `node_modules/next/dist/docs/` para la A
 - `/spec` — genera specs genéricos en `specs/`.
 - `/spec-impl <NN-spec>` — implementa un spec aprobado (crea rama, aplica cambios paso a paso).
 - `/add-game <slug>` — genera un spec para un juego nuevo (portado desde `references/started-games/` o desde cero). No implementa; produce el `.md` listo para `/spec-impl`.
-
+- Agente `game-jam` — recibe un tema, inventa un juego original y escribe 3 specs completos en `specs/game-jam/<slug>/` (`01-add-<slug>.md`, `02-<slug>-levels.md`, `03-<slug>-polish.md`). No implementa.
 
 # Revisar juegos implementados
 
