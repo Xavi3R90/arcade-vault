@@ -280,7 +280,110 @@ a {
   display: none;
 }
 
+/* ===== skin selector (CLÁSICO / NEÓN / RETRO) ===== */
+.skin-switch {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.35);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+.skin-switch-label {
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 6px;
+  font-family: var(--pixel);
+  font-size: 7px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  border-right: 1px dashed var(--line-2);
+  margin-right: 2px;
+}
+.skin-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 6px 10px;
+  font-family: var(--pixel);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: var(--ink-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    color 120ms,
+    border-color 120ms,
+    background 120ms;
+}
+.skin-opt:hover {
+  color: var(--ink);
+}
+.skin-opt:focus-visible {
+  outline: 1px dashed var(--cyan);
+  outline-offset: 1px;
+}
+.skin-opt.active {
+  color: var(--ink);
+  border-color: var(--cyan);
+  background: rgba(0, 245, 255, 0.08);
+  box-shadow: inset 0 0 8px rgba(0, 245, 255, 0.25);
+}
+.skin-swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  opacity: 0.55;
+  transition: opacity 120ms;
+}
+.skin-opt.active .skin-swatch,
+.skin-opt:hover .skin-swatch {
+  opacity: 1;
+}
+.skin-opt[data-skin-opt='classic'] .skin-swatch {
+  background: #000;
+  border: 1.5px solid #fff;
+}
+.skin-opt[data-skin-opt='neon'] .skin-swatch {
+  background: linear-gradient(135deg, var(--magenta) 0 50%, var(--cyan) 50% 100%);
+  box-shadow: 0 0 6px rgba(255, 0, 110, 0.8);
+}
+.skin-opt[data-skin-opt='retro'] .skin-swatch {
+  background: repeating-linear-gradient(0deg, #2fa84a 0 2px, #b6ffc4 2px 3px);
+}
+.skin-switch-panel {
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.skin-switch-panel .skin-switch-label {
+  width: 100%;
+  padding: 6px;
+  border-right: 0;
+  border-bottom: 1px dashed var(--line-2);
+  margin: 0 0 2px;
+}
+.skin-switch-panel .skin-opt {
+  flex: 1;
+  justify-content: center;
+  min-height: 40px;
+  padding: 10px 6px;
+}
+@media (max-width: 1180px) {
+  .skin-switch-bar .skin-name {
+    display: none;
+  }
+  .skin-switch-bar .skin-opt {
+    padding: 6px 8px;
+  }
+}
+
 @media (max-width: 840px) {
+  .skin-switch-bar {
+    display: none;
+  }
   .av-nav {
     padding: 12px 16px;
   }
@@ -715,6 +818,46 @@ a {
     0 0 16px rgba(255, 58, 68, 0.5);
 }
 
+/* Snake · skin NEÓN: cabeza #00ff88, cuerpo verde profundo con glow, fruta magenta */
+[data-skin='neon'] .cover-snake {
+  background: radial-gradient(circle at 40% 50%, #001a10, #05050a);
+}
+[data-skin='neon'] .cover-snake::before {
+  background:
+    linear-gradient(#00ff88, #00ff88) 0% 0% / 28% 40% no-repeat,
+    linear-gradient(#00c46a, #00c46a) 36% 0% / 28% 40% no-repeat,
+    linear-gradient(#009a52, #009a52) 72% 0% / 28% 62% no-repeat,
+    linear-gradient(#008049, #008049) 36% 60% / 28% 40% no-repeat,
+    linear-gradient(#007040, #007040) 0% 60% / 28% 40% no-repeat;
+  filter: drop-shadow(0 0 10px rgba(0, 255, 136, 0.8));
+}
+[data-skin='neon'] .cover-snake::after {
+  background: #ff006e;
+  box-shadow:
+    0 0 8px rgba(255, 0, 110, 1),
+    0 0 20px rgba(255, 0, 110, 0.6);
+}
+
+/* Snake · skin RETRO: handheld de 4 tonos, sin glow, scanlines, fruta cuadrada */
+[data-skin='retro'] .cover-snake {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0 1px, transparent 1px 3px), #081208;
+}
+[data-skin='retro'] .cover-snake::before {
+  background:
+    linear-gradient(#d8f5b0, #d8f5b0) 0% 0% / 28% 40% no-repeat,
+    linear-gradient(#3f8a30, #3f8a30) 36% 0% / 28% 40% no-repeat,
+    linear-gradient(#3f8a30, #3f8a30) 72% 0% / 28% 62% no-repeat,
+    linear-gradient(#3f8a30, #3f8a30) 36% 60% / 28% 40% no-repeat,
+    linear-gradient(#3f8a30, #3f8a30) 0% 60% / 28% 40% no-repeat;
+  filter: none;
+}
+[data-skin='retro'] .cover-snake::after {
+  background: #8fd060;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .cover-glot {
   background: radial-gradient(circle at 50% 50%, #1a002a, #0a0a18);
 }
@@ -817,6 +960,54 @@ a {
     radial-gradient(circle at 5% 86%, rgba(255, 255, 255, 0.5) 0 1px, transparent 2px);
 }
 
+/* Asteroids · skin NEÓN: nave cian, rocas magenta con glow */
+[data-skin='neon'] .cover-asteroids {
+  background: radial-gradient(circle at 50% 50%, #12001a, #05050a);
+}
+[data-skin='neon'] .cover-asteroids::before {
+  color: var(--cyan);
+  text-shadow:
+    0 0 8px rgba(0, 245, 255, 1),
+    0 0 20px rgba(0, 245, 255, 0.6),
+    0 0 36px rgba(0, 245, 255, 0.3);
+}
+[data-skin='neon'] .cover-asteroids::after {
+  background:
+    radial-gradient(ellipse 36px 28px at 76% 22%, #ff006e 0 32px, transparent 33px),
+    radial-gradient(ellipse 22px 18px at 18% 70%, #ff006e 0 100%, transparent 100%),
+    radial-gradient(ellipse 13px 10px at 64% 76%, #ff006e 0 100%, transparent 100%),
+    radial-gradient(circle at 9% 14%, rgba(0, 255, 136, 0.9) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 84% 18%, rgba(245, 255, 0, 0.8) 0 1px, transparent 2px),
+    radial-gradient(circle at 42% 6%, rgba(0, 245, 255, 0.8) 0 1px, transparent 2px),
+    radial-gradient(circle at 27% 44%, rgba(0, 255, 136, 0.6) 0 1px, transparent 2px),
+    radial-gradient(circle at 91% 74%, rgba(0, 245, 255, 0.8) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 5% 86%, rgba(245, 255, 0, 0.6) 0 1px, transparent 2px);
+  filter: drop-shadow(0 0 6px rgba(255, 0, 110, 0.7));
+}
+
+/* Asteroids · skin RETRO: fósforo verde, 4 tonos, scanlines, sin glow */
+[data-skin='retro'] .cover-asteroids {
+  background: #030c05;
+}
+[data-skin='retro'] .cover-asteroids::before {
+  color: #b6ffc4;
+  text-shadow: none;
+  z-index: 1;
+}
+[data-skin='retro'] .cover-asteroids::after {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse 36px 28px at 76% 22%, #2fa84a 0 32px, transparent 33px),
+    radial-gradient(ellipse 22px 18px at 18% 70%, #2fa84a 0 100%, transparent 100%),
+    radial-gradient(ellipse 13px 10px at 64% 76%, #2fa84a 0 100%, transparent 100%),
+    radial-gradient(circle at 9% 14%, #b6ffc4 0 1.5px, transparent 2px),
+    radial-gradient(circle at 84% 18%, #b6ffc4 0 1px, transparent 2px),
+    radial-gradient(circle at 42% 6%, #b6ffc4 0 1px, transparent 2px),
+    radial-gradient(circle at 27% 44%, #0f3a1a 0 1px, transparent 2px),
+    radial-gradient(circle at 91% 74%, #b6ffc4 0 1.5px, transparent 2px),
+    radial-gradient(circle at 5% 86%, #0f3a1a 0 1px, transparent 2px);
+}
+
 .cover-rana {
   background: linear-gradient(180deg, #001f2a, #0a0a18);
 }
@@ -902,6 +1093,52 @@ a {
     repeating-linear-gradient(0deg, transparent 0 calc(33.3% - 2px), #000 calc(33.3% - 2px) 33.3%),
     linear-gradient(to bottom, #ff2244 0 33.3%, var(--yellow) 33.3% 66.6%, var(--cyan) 66.6% 100%);
   filter: drop-shadow(0 0 8px rgba(255, 0, 200, 0.4));
+}
+
+/* Arkanoid · skin NEÓN: pala cian, bola amarilla, ladrillos saturados con glow */
+[data-skin='neon'] .cover-arkanoid {
+  background: radial-gradient(ellipse at 50% 100%, #12001a, #05050a);
+}
+[data-skin='neon'] .cover-arkanoid::before {
+  background:
+    radial-gradient(circle at 52% 58%, var(--yellow) 0 7px, transparent 8px),
+    linear-gradient(var(--cyan), var(--cyan)) 22% 73% / 56% 8% no-repeat;
+  filter: drop-shadow(0 0 10px rgba(0, 245, 255, 0.85));
+}
+[data-skin='neon'] .cover-arkanoid::after {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 calc(20% - 2px), #05050a calc(20% - 2px) 20%),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 calc(33.3% - 2px),
+      #05050a calc(33.3% - 2px) 33.3%
+    ),
+    linear-gradient(to bottom, #f5ff00 0 33.3%, #ff006e 33.3% 66.6%, #00c8ff 66.6% 100%);
+  filter: drop-shadow(0 0 10px rgba(255, 0, 110, 0.6));
+}
+
+/* Arkanoid · skin RETRO: fósforo ámbar, 4 intensidades, scanlines, sin glow */
+[data-skin='retro'] .cover-arkanoid {
+  background: #0a0600;
+}
+[data-skin='retro'] .cover-arkanoid::before {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0 1px, transparent 1px 3px),
+    radial-gradient(circle at 52% 58%, #ffe2a8 0 7px, transparent 8px),
+    linear-gradient(#ffe2a8, #ffe2a8) 22% 73% / 56% 8% no-repeat;
+  filter: none;
+  z-index: 1;
+}
+[data-skin='retro'] .cover-arkanoid::after {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 calc(20% - 2px), #0a0600 calc(20% - 2px) 20%),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 calc(33.3% - 2px),
+      #0a0600 calc(33.3% - 2px) 33.3%
+    ),
+    linear-gradient(to bottom, #ffe2a8 0 33.3%, #f0a838 33.3% 66.6%, #c86a00 66.6% 100%);
+  filter: none;
 }
 
 /* ===== detail screen ===== */
