@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Route, User, SavedScore } from '@/lib/types'
+import { DEFAULT_SKIN, type GamePalette, type SkinId } from '@/lib/skins'
+import { arkanoidSkins } from '@/lib/skins/arkanoid'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const W = 800
@@ -20,6 +22,20 @@ const PAUSE_BTN_H = 40
 const PAUSE_BTN_GAP = 12
 const PAUSE_BTN_Y = 340
 const PAUSE_BTN_ROW_X = (W - (5 * PAUSE_BTN_W + 4 * PAUSE_BTN_GAP)) / 2
+
+// ── Skins ─────────────────────────────────────────────────────────────────
+const ex = (p: GamePalette, key: string) => p.extra[key] as string
+// Familia de color de LEVELS → clave de la paleta (lib/skins/arkanoid.ts).
+const BLOCK_KEY: Record<string, string> = {
+  red: 'blockRed',
+  yellow: 'blockYellow',
+  cyan: 'blockCyan',
+  magenta: 'blockMagenta',
+  hotpink: 'blockHotpink',
+  green: 'blockGreen',
+  gray: 'blockGray',
+}
+const blockColor = (p: GamePalette, family: string) => ex(p, BLOCK_KEY[family]) ?? family
 
 // ── Levels ────────────────────────────────────────────────────────────────
 interface LevelBlock {
@@ -148,9 +164,15 @@ interface Props {
   navigate: (r: Route) => void
   user: User | null
   onSaveScore: (entry: SavedScore) => void
+  skin?: SkinId
 }
 
-export default function ArkanoidScreen({ navigate, user, onSaveScore }: Props) {
+export default function ArkanoidScreen({
+  navigate,
+  user,
+  onSaveScore,
+  skin = DEFAULT_SKIN,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gsRef = useRef<GS>(gInit())
   const keysRef = useRef<Record<string, boolean>>({})
@@ -158,6 +180,9 @@ export default function ArkanoidScreen({ navigate, user, onSaveScore }: Props) {
   const pausedRef = useRef(false)
   const lastTimeRef = useRef<number | null>(null)
   const overSetRef = useRef(false)
+  // Paleta leída dentro del loop RAF: cambiar de skin no reinicia la partida.
+  const paletteRef = useRef<GamePalette>(arkanoidSkins[skin])
+  const p = arkanoidSkins[skin]
 
   const [score, setScore] = useState(0)
   const [lives, setLives] = useState(3)
@@ -166,6 +191,10 @@ export default function ArkanoidScreen({ navigate, user, onSaveScore }: Props) {
   const [over, setOver] = useState<'gameover' | 'win' | null>(null)
   const [name, setName] = useState(user?.name ?? 'INVITADO')
   const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    paletteRef.current = arkanoidSkins[skin]
+  }, [skin])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -302,32 +331,53 @@ export default function ArkanoidScreen({ navigate, user, onSaveScore }: Props) {
       }
 
       // Draw
-      ctx.fillStyle = '#0a0a0f'
+      const pal = paletteRef.current
+      ctx.fillStyle = pal.bg
       ctx.fillRect(0, 0, W, H)
 
       for (const block of gs.blocks) {
         if (!block.alive) continue
-        ctx.fillStyle = block.color
+        const color = blockColor(pal, block.color)
+        ctx.fillStyle = color
+        if (pal.glow > 0) {
+          ctx.shadowBlur = pal.glow
+          ctx.shadowColor = color
+        }
         ctx.fillRect(block.x + 1, block.y + 1, block.w - 2, block.h - 2)
-        ctx.fillStyle = 'rgba(255,255,255,0.2)'
+        ctx.shadowBlur = 0
+        ctx.fillStyle = ex(pal, 'blockShine')
         ctx.fillRect(block.x + 1, block.y + 1, block.w - 2, 5)
       }
 
-      ctx.fillStyle = '#e0e0e0'
+      ctx.fillStyle = pal.fg
+      if (pal.glow > 0) {
+        ctx.shadowBlur = pal.glow
+        ctx.shadowColor = pal.fg
+      }
       ctx.beginPath()
       ctx.roundRect(gs.paddle.x, gs.paddle.y, gs.paddle.w, gs.paddle.h, 4)
       ctx.fill()
 
-      ctx.fillStyle = '#ffffff'
+      ctx.fillStyle = pal.accent
+      if (pal.glow > 0) {
+        ctx.shadowBlur = pal.glow
+        ctx.shadowColor = pal.accent
+      }
       ctx.beginPath()
       ctx.arc(gs.ball.x + gs.ball.w / 2, gs.ball.y + gs.ball.h / 2, gs.ball.w / 2, 0, Math.PI * 2)
       ctx.fill()
+      ctx.shadowBlur = 0
+
+      if (pal.scanlines) {
+        ctx.fillStyle = pal.grid
+        for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1)
+      }
 
       if (pausedRef.current) {
-        ctx.fillStyle = 'rgba(0,0,0,0.65)'
+        ctx.fillStyle = ex(pal, 'pauseOverlay')
         ctx.fillRect(0, 0, W, H)
 
-        ctx.fillStyle = '#fff'
+        ctx.fillStyle = ex(pal, 'pauseText')
         ctx.font = 'bold 56px monospace'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
@@ -339,14 +389,14 @@ export default function ArkanoidScreen({ navigate, user, onSaveScore }: Props) {
         for (let i = 0; i < 5; i++) {
           const bx = PAUSE_BTN_ROW_X + i * (PAUSE_BTN_W + PAUSE_BTN_GAP)
           const isActive = i + 1 === gs.currentLevel
-          ctx.fillStyle = isActive ? '#f0c040' : '#444'
-          ctx.strokeStyle = '#fff'
+          ctx.fillStyle = isActive ? ex(pal, 'pauseBtnActive') : ex(pal, 'pauseBtn')
+          ctx.strokeStyle = ex(pal, 'pauseBtnStroke')
           ctx.lineWidth = 2
           ctx.beginPath()
           ctx.roundRect(bx, PAUSE_BTN_Y, PAUSE_BTN_W, PAUSE_BTN_H, 6)
           ctx.fill()
           ctx.stroke()
-          ctx.fillStyle = isActive ? '#000' : '#fff'
+          ctx.fillStyle = isActive ? ex(pal, 'pauseBtnTextActive') : ex(pal, 'pauseBtnText')
           ctx.font = 'bold 20px monospace'
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
@@ -389,19 +439,44 @@ export default function ArkanoidScreen({ navigate, user, onSaveScore }: Props) {
 
   return (
     <div className="av-player fade-in">
-      <div className="player-hud">
+      <div
+        className="player-hud"
+        style={{ background: ex(p, 'hudBg'), borderColor: ex(p, 'hudBorder') }}
+      >
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="hud-stat">
-            <div className="l">Puntuación</div>
-            <div className="v">{score.toLocaleString('es-ES')}</div>
+            <div className="l" style={{ color: ex(p, 'hudLabel') }}>
+              Puntuación
+            </div>
+            <div className="v" style={{ color: p.text, textShadow: ex(p, 'hudScoreShadow') }}>
+              {score.toLocaleString('es-ES')}
+            </div>
           </div>
           <div className="hud-stat level">
-            <div className="l">Nivel</div>
-            <div className="v">{String(level).padStart(2, '0')}</div>
+            <div className="l" style={{ color: ex(p, 'hudLabel') }}>
+              Nivel
+            </div>
+            <div
+              className="v"
+              style={{ color: ex(p, 'hudLevel'), textShadow: ex(p, 'hudLevelShadow') }}
+            >
+              {String(level).padStart(2, '0')}
+            </div>
           </div>
           <div className="hud-stat lives">
-            <div className="l">Vidas</div>
-            <div className="v" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div className="l" style={{ color: ex(p, 'hudLabel') }}>
+              Vidas
+            </div>
+            <div
+              className="v"
+              style={{
+                display: 'flex',
+                gap: 6,
+                alignItems: 'center',
+                color: p.danger,
+                textShadow: ex(p, 'hudLivesShadow'),
+              }}
+            >
               {Array.from({ length: Math.max(0, lives) }).map((_, i) => (
                 <span key={i}>●</span>
               ))}
@@ -441,10 +516,26 @@ export default function ArkanoidScreen({ navigate, user, onSaveScore }: Props) {
 
       {over && (
         <div className="modal-bd">
-          <div className="modal">
-            <h2>{over === 'win' ? '¡COMPLETASTE EL JUEGO!' : 'GAME OVER'}</h2>
-            <div className="final-label">PUNTUACIÓN FINAL</div>
-            <div className="final">{score.toLocaleString('es-ES')}</div>
+          <div
+            className="modal"
+            style={{
+              background: ex(p, 'modalBg'),
+              borderColor: ex(p, 'modalBorder'),
+              boxShadow: ex(p, 'modalShadow'),
+            }}
+          >
+            <h2 style={{ color: ex(p, 'modalTitle'), textShadow: ex(p, 'modalTitleShadow') }}>
+              {over === 'win' ? '¡COMPLETASTE EL JUEGO!' : 'GAME OVER'}
+            </h2>
+            <div className="final-label" style={{ color: ex(p, 'modalLabel') }}>
+              PUNTUACIÓN FINAL
+            </div>
+            <div
+              className="final"
+              style={{ color: ex(p, 'modalFinal'), textShadow: ex(p, 'modalFinalShadow') }}
+            >
+              {score.toLocaleString('es-ES')}
+            </div>
             {!saved ? (
               <div className="input-row">
                 <input

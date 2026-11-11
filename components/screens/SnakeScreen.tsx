@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { Route, User, SavedScore } from '@/lib/types'
+import { DEFAULT_SKIN, type GamePalette, type SkinId } from '@/lib/skins'
+import { snakeSkins } from '@/lib/skins/snake'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const W = 800
@@ -13,6 +15,8 @@ const BASE_INTERVAL = 150
 const MIN_INTERVAL = 60
 const SPEED_STEP = 5
 const PTS = 10
+
+const ex = (p: GamePalette, key: string) => p.extra[key] as string
 
 // ── Sprite atlas (from references/source-assets/snake-assets/sprites.js) ──
 type Sprite = { x: number; y: number; w: number; h: number }
@@ -98,9 +102,10 @@ interface Props {
   navigate: (r: Route) => void
   user: User | null
   onSaveScore: (entry: SavedScore) => void
+  skin?: SkinId
 }
 
-export default function SnakeScreen({ navigate, user, onSaveScore }: Props) {
+export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAULT_SKIN }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement | null>(null)
   const imgReadyRef = useRef(false)
@@ -113,6 +118,9 @@ export default function SnakeScreen({ navigate, user, onSaveScore }: Props) {
   const scoreRef = useRef(0)
   const overRef = useRef(false)
   const pausedRef = useRef(false)
+  // Paleta leída en draw(): cambiar de skin no reinicia la partida.
+  const paletteRef = useRef<GamePalette>(snakeSkins[skin])
+  const p = snakeSkins[skin]
 
   const [score, setScore] = useState(0)
   const [snakeLen, setSnakeLen] = useState(3)
@@ -127,10 +135,12 @@ export default function SnakeScreen({ navigate, user, onSaveScore }: Props) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    ctx.fillStyle = '#0a1a0a'
+    const pal = paletteRef.current
+
+    ctx.fillStyle = pal.bg
     ctx.fillRect(0, 0, W, H)
 
-    ctx.strokeStyle = 'rgba(0,48,0,0.35)'
+    ctx.strokeStyle = pal.grid
     ctx.lineWidth = 0.5
     for (let c = 0; c <= COLS; c++) {
       ctx.beginPath()
@@ -148,21 +158,37 @@ export default function SnakeScreen({ navigate, user, onSaveScore }: Props) {
     const fruit = fruitRef.current
     const fx = fruit.col * CELL
     const fy = fruit.row * CELL
-    if (imgReadyRef.current && imgRef.current) {
+    if (ex(pal, 'fruitSprite') === 'yes' && imgReadyRef.current && imgRef.current) {
       const { x, y, w, h } = fruit.sprite
       ctx.drawImage(imgRef.current, x, y, w, h, fx + 1, fy + 1, CELL - 2, CELL - 2)
     } else {
-      ctx.fillStyle = '#ff4444'
-      ctx.beginPath()
-      ctx.arc(fx + CELL / 2, fy + CELL / 2, CELL / 2 - 2, 0, Math.PI * 2)
-      ctx.fill()
+      ctx.fillStyle = pal.danger
+      ctx.shadowBlur = pal.glow
+      ctx.shadowColor = pal.danger
+      if (pal.scanlines) {
+        // Retro: fruta como bloque de píxeles
+        ctx.fillRect(fx + 4, fy + 4, CELL - 8, CELL - 8)
+      } else {
+        ctx.beginPath()
+        ctx.arc(fx + CELL / 2, fy + CELL / 2, CELL / 2 - 2, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      ctx.shadowBlur = 0
     }
 
     const snake = snakeRef.current
     for (let i = 0; i < snake.length; i++) {
       const { col, row } = snake[i]
-      ctx.fillStyle = i === 0 ? '#00ff55' : '#00bb33'
+      ctx.fillStyle = i === 0 ? pal.fg : pal.accent
+      ctx.shadowBlur = pal.glow
+      ctx.shadowColor = i === 0 ? pal.fg : pal.accent
       fillRoundRect(ctx, col * CELL + 1, row * CELL + 1, CELL - 2, CELL - 2, i === 0 ? 5 : 3)
+    }
+    ctx.shadowBlur = 0
+
+    if (pal.scanlines) {
+      ctx.fillStyle = ex(pal, 'scanline')
+      for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1)
     }
   }
 
@@ -242,6 +268,12 @@ export default function SnakeScreen({ navigate, user, onSaveScore }: Props) {
   }
 
   useEffect(() => {
+    paletteRef.current = snakeSkins[skin]
+    // Repinta al instante (también en pausa o game over) sin tocar el intervalo.
+    draw()
+  }, [skin])
+
+  useEffect(() => {
     const img = new Image()
     img.onload = () => {
       imgReadyRef.current = true
@@ -285,15 +317,26 @@ export default function SnakeScreen({ navigate, user, onSaveScore }: Props) {
 
   return (
     <div className="av-player fade-in">
-      <div className="player-hud">
+      <div
+        className="player-hud"
+        style={{ background: ex(p, 'hudBg'), borderColor: ex(p, 'hudBorder') }}
+      >
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="hud-stat">
-            <div className="l">Puntuación</div>
-            <div className="v">{score.toLocaleString('es-ES')}</div>
+            <div className="l" style={{ color: ex(p, 'hudLabel') }}>
+              Puntuación
+            </div>
+            <div className="v" style={{ color: p.text, textShadow: ex(p, 'hudValueShadow') }}>
+              {score.toLocaleString('es-ES')}
+            </div>
           </div>
           <div className="hud-stat">
-            <div className="l">Longitud</div>
-            <div className="v">{snakeLen}</div>
+            <div className="l" style={{ color: ex(p, 'hudLabel') }}>
+              Longitud
+            </div>
+            <div className="v" style={{ color: p.text, textShadow: ex(p, 'hudValueShadow') }}>
+              {snakeLen}
+            </div>
           </div>
         </div>
         <div className="hud-actions">
@@ -333,10 +376,26 @@ export default function SnakeScreen({ navigate, user, onSaveScore }: Props) {
 
       {over && (
         <div className="modal-bd">
-          <div className="modal">
-            <h2>GAME OVER</h2>
-            <div className="final-label">PUNTUACIÓN FINAL</div>
-            <div className="final">{score.toLocaleString('es-ES')}</div>
+          <div
+            className="modal"
+            style={{
+              background: ex(p, 'modalBg'),
+              borderColor: ex(p, 'modalBorder'),
+              boxShadow: ex(p, 'modalShadow'),
+            }}
+          >
+            <h2 style={{ color: ex(p, 'modalTitle'), textShadow: ex(p, 'modalTitleShadow') }}>
+              GAME OVER
+            </h2>
+            <div className="final-label" style={{ color: ex(p, 'modalLabel') }}>
+              PUNTUACIÓN FINAL
+            </div>
+            <div
+              className="final"
+              style={{ color: ex(p, 'modalFinal'), textShadow: ex(p, 'modalFinalShadow') }}
+            >
+              {score.toLocaleString('es-ES')}
+            </div>
             {!saved ? (
               <div className="input-row">
                 <input

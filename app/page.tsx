@@ -110,9 +110,13 @@ export default function Home() {
   } else if (route.name === 'tetris') {
     screen = <TetrisScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
   } else if (route.name === 'arkanoid') {
-    screen = <ArkanoidScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
+    screen = (
+      <ArkanoidScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} skin={skin} />
+    )
   } else if (route.name === 'snake') {
-    screen = <SnakeScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
+    screen = (
+      <SnakeScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} skin={skin} />
+    )
   }
 
   return (
