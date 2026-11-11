@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Route, User, SavedScore } from '@/lib/types'
+import { DEFAULT_SKIN, type GamePalette, type SkinId } from '@/lib/skins'
+import { asteroidsSkins } from '@/lib/skins/asteroids'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const W = 800
@@ -20,6 +22,17 @@ const gDist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.hypot(a.x - b.x, a.y - b.y)
 const rand = (min: number, max: number) => min + Math.random() * (max - min)
 const randInt = (min: number, max: number) => Math.floor(rand(min, max + 1))
+const ex = (p: GamePalette, key: string) => p.extra[key] as string
+// Glow de neón: solo si la paleta lo pide. Siempre se restablece tras dibujar.
+const setGlow = (ctx: CanvasRenderingContext2D, p: GamePalette, color: string) => {
+  if (p.glow > 0) {
+    ctx.shadowBlur = p.glow
+    ctx.shadowColor = color
+  }
+}
+const clearGlow = (ctx: CanvasRenderingContext2D) => {
+  ctx.shadowBlur = 0
+}
 
 // ── Classes ────────────────────────────────────────────────────────────────
 class Bullet {
@@ -46,11 +59,14 @@ class Bullet {
     if (this.ttl <= 0) this.dead = true
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = '#fff'
+  draw(ctx: CanvasRenderingContext2D, p: GamePalette) {
+    const color = ex(p, 'bullet')
+    ctx.fillStyle = color
+    setGlow(ctx, p, color)
     ctx.beginPath()
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2)
     ctx.fill()
+    clearGlow(ctx)
   }
 }
 
@@ -100,11 +116,13 @@ class Asteroid {
     ]
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, p: GamePalette) {
+    const color = ex(p, 'asteroid')
     ctx.save()
     ctx.translate(this.x, this.y)
     ctx.rotate(this.rot)
-    ctx.strokeStyle = '#fff'
+    ctx.strokeStyle = color
+    setGlow(ctx, p, color)
     ctx.lineWidth = 1.5
     ctx.lineJoin = 'round'
     ctx.beginPath()
@@ -112,6 +130,7 @@ class Asteroid {
     for (let i = 1; i < this.verts.length; i++) ctx.lineTo(this.verts[i][0], this.verts[i][1])
     ctx.closePath()
     ctx.stroke()
+    clearGlow(ctx)
     ctx.restore()
   }
 }
@@ -142,22 +161,25 @@ class PowerUp {
     if (this.ttl <= 0) this.dead = true
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, p: GamePalette) {
     if (this.ttl < 2 && Math.floor(this.ttl * 8) % 2 === 0) return
     const pulse = 0.85 + Math.sin(performance.now() / 150) * 0.15
     ctx.save()
     ctx.translate(this.x, this.y)
     ctx.rotate(Math.PI / 4)
-    ctx.strokeStyle = '#0ff'
+    ctx.strokeStyle = p.accent
+    setGlow(ctx, p, p.accent)
     ctx.lineWidth = 2
     const r = this.radius * pulse
     ctx.strokeRect(-r, -r, r * 2, r * 2)
     ctx.restore()
-    ctx.fillStyle = '#0ff'
+    ctx.fillStyle = p.accent
+    setGlow(ctx, p, p.accent)
     ctx.font = 'bold 12px monospace'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText('3x', this.x, this.y)
+    clearGlow(ctx)
   }
 }
 
@@ -223,13 +245,14 @@ class Ship {
     return [new Bullet(ox, oy, this.angle)]
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, p: GamePalette) {
     if (this.dead) return
     if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0) return
     ctx.save()
     ctx.translate(this.x, this.y)
     ctx.rotate(this.angle)
-    ctx.strokeStyle = '#fff'
+    ctx.strokeStyle = p.fg
+    setGlow(ctx, p, p.fg)
     ctx.lineWidth = 1.5
     ctx.lineJoin = 'round'
     ctx.beginPath()
@@ -244,9 +267,11 @@ class Ship {
       ctx.moveTo(-8, -4)
       ctx.lineTo(-8 - rand(6, 14), 0)
       ctx.lineTo(-8, 4)
-      ctx.strokeStyle = 'rgba(255, 130, 0, 0.85)'
+      ctx.strokeStyle = p.danger
+      setGlow(ctx, p, p.danger)
       ctx.stroke()
     }
+    clearGlow(ctx)
     ctx.restore()
   }
 }
@@ -278,9 +303,9 @@ class Particle {
     if (this.ttl <= 0) this.dead = true
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, p: GamePalette) {
     const alpha = this.ttl / this.life
-    ctx.strokeStyle = `rgba(255,255,255,${alpha.toFixed(2)})`
+    ctx.strokeStyle = `rgba(${ex(p, 'particle')},${alpha.toFixed(2)})`
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(this.x, this.y)
@@ -368,9 +393,15 @@ interface Props {
   navigate: (r: Route) => void
   user: User | null
   onSaveScore: (entry: SavedScore) => void
+  skin?: SkinId
 }
 
-export default function AsteroidsScreen({ navigate, user, onSaveScore }: Props) {
+export default function AsteroidsScreen({
+  navigate,
+  user,
+  onSaveScore,
+  skin = DEFAULT_SKIN,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gsRef = useRef<GS>(gInit())
   const keysRef = useRef<Record<string, boolean>>({})
@@ -379,6 +410,9 @@ export default function AsteroidsScreen({ navigate, user, onSaveScore }: Props) 
   const pausedRef = useRef(false)
   const lastTimeRef = useRef<number | null>(null)
   const overSetRef = useRef(false)
+  // Paleta leída dentro del loop RAF: cambiar de skin no reinicia la partida.
+  const paletteRef = useRef<GamePalette>(asteroidsSkins[skin])
+  const p = asteroidsSkins[skin]
 
   const [score, setScore] = useState(0)
   const [lives, setLives] = useState(3)
@@ -388,6 +422,10 @@ export default function AsteroidsScreen({ navigate, user, onSaveScore }: Props) 
   const [over, setOver] = useState(false)
   const [name, setName] = useState(user?.name ?? 'INVITADO')
   const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    paletteRef.current = asteroidsSkins[skin]
+  }, [skin])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -497,13 +535,18 @@ export default function AsteroidsScreen({ navigate, user, onSaveScore }: Props) 
       }
 
       // Draw always (even when paused)
-      ctx.fillStyle = '#000'
+      const pal = paletteRef.current
+      ctx.fillStyle = pal.bg
       ctx.fillRect(0, 0, W, H)
-      gs.particles.forEach((p) => p.draw(ctx))
-      gs.asteroids.forEach((a) => a.draw(ctx))
-      gs.powerUps.forEach((p) => p.draw(ctx))
-      gs.bullets.forEach((b) => b.draw(ctx))
-      gs.ship.draw(ctx)
+      gs.particles.forEach((p) => p.draw(ctx, pal))
+      gs.asteroids.forEach((a) => a.draw(ctx, pal))
+      gs.powerUps.forEach((p) => p.draw(ctx, pal))
+      gs.bullets.forEach((b) => b.draw(ctx, pal))
+      gs.ship.draw(ctx, pal)
+      if (pal.scanlines) {
+        ctx.fillStyle = pal.grid
+        for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1)
+      }
 
       rafRef.current = requestAnimationFrame(loop)
     }
@@ -541,19 +584,44 @@ export default function AsteroidsScreen({ navigate, user, onSaveScore }: Props) 
   return (
     <div className="av-player fade-in">
       {/* HUD */}
-      <div className="player-hud">
+      <div
+        className="player-hud"
+        style={{ background: ex(p, 'hudBg'), borderColor: ex(p, 'hudBorder') }}
+      >
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="hud-stat">
-            <div className="l">Puntuación</div>
-            <div className="v">{score.toLocaleString('es-ES')}</div>
+            <div className="l" style={{ color: ex(p, 'hudLabel') }}>
+              Puntuación
+            </div>
+            <div className="v" style={{ color: p.text, textShadow: ex(p, 'hudScoreShadow') }}>
+              {score.toLocaleString('es-ES')}
+            </div>
           </div>
           <div className="hud-stat level">
-            <div className="l">Nivel</div>
-            <div className="v">{String(level).padStart(2, '0')}</div>
+            <div className="l" style={{ color: ex(p, 'hudLabel') }}>
+              Nivel
+            </div>
+            <div
+              className="v"
+              style={{ color: ex(p, 'hudLevel'), textShadow: ex(p, 'hudLevelShadow') }}
+            >
+              {String(level).padStart(2, '0')}
+            </div>
           </div>
           <div className="hud-stat lives">
-            <div className="l">Vidas</div>
-            <div className="v" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div className="l" style={{ color: ex(p, 'hudLabel') }}>
+              Vidas
+            </div>
+            <div
+              className="v"
+              style={{
+                display: 'flex',
+                gap: 6,
+                alignItems: 'center',
+                color: ex(p, 'hudLives'),
+                textShadow: ex(p, 'hudLivesShadow'),
+              }}
+            >
               {Array.from({ length: Math.max(0, lives) }).map((_, i) => (
                 <svg key={i} width="14" height="16" viewBox="0 0 20 22" fill="none">
                   <polygon
@@ -569,12 +637,12 @@ export default function AsteroidsScreen({ navigate, user, onSaveScore }: Props) 
           </div>
           {tripleShot > 0 && (
             <div className="hud-stat">
-              <div className="l" style={{ color: 'var(--cyan)' }}>
+              <div className="l" style={{ color: ex(p, 'hudPower') }}>
                 3x DISPARO
               </div>
               <div
                 className="v"
-                style={{ color: 'var(--cyan)', textShadow: '0 0 6px rgba(0,245,255,0.5)' }}
+                style={{ color: ex(p, 'hudPower'), textShadow: ex(p, 'hudPowerShadow') }}
               >
                 {tripleShot.toFixed(1)}s
               </div>
@@ -615,21 +683,28 @@ export default function AsteroidsScreen({ navigate, user, onSaveScore }: Props) 
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(0,0,0,0.6)',
+              background: ex(p, 'pauseOverlay'),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
             <div style={{ textAlign: 'center' }}>
-              <div className="pixel neon-yellow" style={{ fontSize: 22 }}>
+              <div
+                className="pixel neon-yellow"
+                style={{
+                  fontSize: 22,
+                  color: ex(p, 'pauseTitle'),
+                  textShadow: ex(p, 'pauseTitleShadow'),
+                }}
+              >
                 EN PAUSA
               </div>
               <div
                 className="mono"
                 style={{
                   fontSize: 11,
-                  color: 'var(--ink-dim)',
+                  color: ex(p, 'pauseText'),
                   marginTop: 10,
                   letterSpacing: '0.16em',
                 }}
@@ -644,10 +719,26 @@ export default function AsteroidsScreen({ navigate, user, onSaveScore }: Props) 
       {/* Modal de game over */}
       {over && (
         <div className="modal-bd">
-          <div className="modal">
-            <h2>FIN DEL JUEGO</h2>
-            <div className="final-label">PUNTUACIÓN FINAL</div>
-            <div className="final">{score.toLocaleString('es-ES')}</div>
+          <div
+            className="modal"
+            style={{
+              background: ex(p, 'modalBg'),
+              borderColor: ex(p, 'modalBorder'),
+              boxShadow: ex(p, 'modalShadow'),
+            }}
+          >
+            <h2 style={{ color: ex(p, 'modalTitle'), textShadow: ex(p, 'modalTitleShadow') }}>
+              FIN DEL JUEGO
+            </h2>
+            <div className="final-label" style={{ color: ex(p, 'modalLabel') }}>
+              PUNTUACIÓN FINAL
+            </div>
+            <div
+              className="final"
+              style={{ color: ex(p, 'modalFinal'), textShadow: ex(p, 'modalFinalShadow') }}
+            >
+              {score.toLocaleString('es-ES')}
+            </div>
             {!saved ? (
               <div className="input-row">
                 <input

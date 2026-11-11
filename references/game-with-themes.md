@@ -8,12 +8,12 @@ Registro de qué juegos de Arcade Vault tienen implementados los 3 skins obligat
 
 ## Estado
 
-| Juego     | Slug      | Clásico   | Neón      | Retro     | Contraste mín. (oscuro) | Paleta | Fecha |
-| --------- | --------- | --------- | --------- | --------- | ----------------------- | ------ | ----- |
-| ARKANOID  | arkanoid  | pendiente | pendiente | pendiente | —                       | —      | —     |
-| ASTEROIDS | asteroids | pendiente | pendiente | pendiente | —                       | —      | —     |
-| SNAKE     | snake     | pendiente | pendiente | pendiente | —                       | —      | —     |
-| TETRIS    | tetris    | pendiente | pendiente | pendiente | —                       | —      | —     |
+| Juego     | Slug      | Clásico                | Neón      | Retro     | Contraste mín. (oscuro)                                               | Paleta                   | Fecha      |
+| --------- | --------- | ---------------------- | --------- | --------- | --------------------------------------------------------------------- | ------------------------ | ---------- |
+| ARKANOID  | arkanoid  | pendiente              | pendiente | pendiente | —                                                                     | —                        | —          |
+| ASTEROIDS | asteroids | contraste insuficiente | ok        | ok        | clásico 1.0:1 (distinción) / 2.4:1 (texto) · neón 2.8:1 · retro 2.6:1 | `lib/skins/asteroids.ts` | 2026-11-11 |
+| SNAKE     | snake     | pendiente              | pendiente | pendiente | —                                                                     | —                        | —          |
+| TETRIS    | tetris    | pendiente              | pendiente | pendiente | —                                                                     | —                        | —          |
 
 Estados posibles: `pendiente` · `ok` · `contraste insuficiente`.
 
@@ -48,4 +48,4 @@ Un juego está **completo** cuando sus 3 columnas de skin están en `ok`.
 - AAAA-MM-DD — <slug>: classic/neon/retro ok · contraste mín. X.X:1 · lib/skins/<slug>.ts
 -->
 
-_Sin entradas todavía._
+- 2026-11-11 — asteroids: classic contraste insuficiente / neon ok / retro ok · contraste mín. neón 2.8:1, retro 2.6:1 (distinción; fondo ≥ 5.3:1, texto ≥ 5.2:1) · lib/skins/asteroids.ts · Clásico sin modificar: nave, rocas y balas comparten `#fff` (1.0:1 entre sí) y las etiquetas del HUD/modal `#4a4f70` sobre `#0f0f18` dan 2.4:1 (< 4.5:1). Pendiente de decisión del usuario.

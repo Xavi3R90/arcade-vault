@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import type { Route, User, SavedScore, Game } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
+import { readSkin, serverSkin, subscribeSkin, writeSkin, type SkinId } from '@/lib/skins'
 import Nav from '@/components/Nav'
 import HomeScreen from '@/components/screens/HomeScreen'
 import Library from '@/components/screens/Library'
@@ -20,6 +21,9 @@ export default function Home() {
   const [route, setRoute] = useState<Route>({ name: 'home' })
   const [user, setUser] = useState<User | null>(null)
   const [games, setGames] = useState<Game[]>([])
+  // Skin global: hidratado desde localStorage['av-skin'] (servidor = 'classic').
+  const skin = useSyncExternalStore<SkinId>(subscribeSkin, readSkin, serverSkin)
+  const handleSkinChange = (s: SkinId) => writeSkin(s)
 
   useEffect(() => {
     try {
@@ -100,7 +104,9 @@ export default function Home() {
   } else if (route.name === 'about') {
     screen = <AboutScreen navigate={navigate} />
   } else if (route.name === 'asteroids') {
-    screen = <AsteroidsScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
+    screen = (
+      <AsteroidsScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} skin={skin} />
+    )
   } else if (route.name === 'tetris') {
     screen = <TetrisScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
   } else if (route.name === 'arkanoid') {
@@ -115,8 +121,15 @@ export default function Home() {
       <div className="av-noise" />
       {/* Replicates #root { position: relative; z-index: 2 } from the original template
           so all app content renders above av-bg (z-index:0) and av-noise (z-index:1) */}
-      <div id="root">
-        <Nav route={route} navigate={navigate} user={user} onSignOut={handleSignOut} />
+      <div id="root" data-skin={skin}>
+        <Nav
+          route={route}
+          navigate={navigate}
+          user={user}
+          onSignOut={handleSignOut}
+          skin={skin}
+          onSkinChange={handleSkinChange}
+        />
         <main className="av-main">{screen}</main>
         <footer
           style={{
