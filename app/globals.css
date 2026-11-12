@@ -3545,6 +3545,41 @@ html:has(#root.in-game) body {
     min-height: 44px;
   }
 }
+/* Vertical: nav + HUD (con el toggle en su propia fila) ocupan ~260px. Con 230
+   la barra PAUSA · skin · SALIR se salía por abajo en 360×740. */
+@media (orientation: portrait) {
+  .game-stage.is-console {
+    --stage-chrome: 260px;
+  }
+}
+/* Tetris en horizontal: cruceta y B/A van a los lados del tablero, así que el
+   stage no puede quedarse en 420px (el tablero quedaba en ~36px de ancho). */
+@media (orientation: landscape) {
+  .tetris-layout > .game-stage.is-console {
+    max-width: none;
+  }
+}
+/* Tetris girado en móvil: su HUD es lateral, sobre el tablero solo está la nav */
+@media (orientation: landscape) and (max-height: 600px) {
+  .tetris-layout:has(> .game-stage.is-console) {
+    gap: 12px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .tetris-layout > .game-stage.is-console {
+    --stage-chrome: 110px;
+    column-gap: 10px;
+  }
+  /* el toggle "CONTROLES: AUTO" ensanchaba el panel lateral a 216px */
+  .tetris-layout:has(> .game-stage.is-console) .tetris-side {
+    min-width: 0;
+    max-width: 170px;
+  }
+  .tetris-layout:has(> .game-stage.is-console) .touch-toggle {
+    white-space: normal;
+    line-height: 1.5;
+  }
+}
 /* Móvil girado (alto ≤ 500px): B/A + 3 pills apiladas no caben en el alto.
    PAUSA y SALIR pasan a solo icono en una fila; el skin sigue en el menú. */
 @media (orientation: landscape) and (max-height: 500px) {
