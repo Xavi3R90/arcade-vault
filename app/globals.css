@@ -3493,6 +3493,8 @@ html:has(#root.in-game) body {
   font-size: 10px;
 }
 [data-skin='retro'] .gp-skin select {
+  /* la fuente pixel a 16px no cabe en la columna: mono a 16px (sin auto-zoom iOS) */
+  font-family: var(--mono);
   font-size: 16px;
 }
 [data-skin='retro'] .gp-btn.pressed {
@@ -3514,7 +3516,8 @@ html:has(#root.in-game) body {
    restan ancho; en alto solo cuentan bezel y barra de estado. */
 @media (orientation: landscape) {
   .game-stage.is-console {
-    --stage-controls-h: 70px;
+    /* solo bezel (24) + barra de estado (22): el gamepad va a los lados */
+    --stage-controls-h: 46px;
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-rows: 1fr auto;
     grid-template-areas:
@@ -3578,6 +3581,11 @@ html:has(#root.in-game) body {
     order: 2;
     max-width: none;
     --stage-chrome: 330px;
+  }
+  /* Modo consola: el gamepad ya ocupa el alto; el HUD de Tetris solo deja
+     estadísticas + toggle encima, así que se ajusta el margen superior. */
+  .tetris-layout > .game-stage.is-console {
+    --stage-chrome: 250px;
   }
   .tetris-side {
     order: 1;
