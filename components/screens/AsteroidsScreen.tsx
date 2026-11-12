@@ -4,6 +4,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Route, User, SavedScore } from '@/lib/types'
 import { DEFAULT_SKIN, type GamePalette, type SkinId } from '@/lib/skins'
 import { asteroidsSkins } from '@/lib/skins/asteroids'
+import TouchControls from '@/components/TouchControls'
+import { TOUCH_MAPPINGS } from '@/lib/touch'
+import { useIsTouchMobile } from '@/lib/useTouchMobile'
+
+// Contenedor del canvas en escritorio (en móvil lo sustituye .game-stage, SPEC 10).
+const DESKTOP_STAGE = {
+  position: 'relative',
+  width: '100%',
+  maxWidth: 800,
+  margin: '0 auto',
+  aspectRatio: '800 / 600',
+} as const
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const W = 800
@@ -419,6 +431,7 @@ export default function AsteroidsScreen({
   const [level, setLevel] = useState(1)
   const [tripleShot, setTripleShot] = useState(0)
   const [paused, setPaused] = useState(false)
+  const isTouchMobile = useIsTouchMobile()
   const [over, setOver] = useState(false)
   const [name, setName] = useState(user?.name ?? 'INVITADO')
   const [saved, setSaved] = useState(false)
@@ -581,8 +594,10 @@ export default function AsteroidsScreen({
     setSaved(false)
   }, [])
 
+  const exit = () => navigate({ name: 'detalle', id: 'asteroids' })
+
   return (
-    <div className="av-player fade-in">
+    <div className={'av-player fade-in' + (isTouchMobile ? ' game-mobile' : '')}>
       {/* HUD */}
       <div
         className="player-hud"
@@ -653,68 +668,72 @@ export default function AsteroidsScreen({
           <button className="btn yellow" onClick={togglePause}>
             {paused ? 'REANUDAR' : 'PAUSA'}
           </button>
-          <button
-            className="btn ghost"
-            onClick={() => navigate({ name: 'detalle', id: 'asteroids' })}
-          >
+          <button className="btn ghost" onClick={exit}>
             SALIR
           </button>
         </div>
       </div>
 
-      {/* Canvas responsivo */}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: 800,
-          margin: '0 auto',
-          aspectRatio: '800 / 600',
-        }}
-      >
-        <canvas
-          ref={canvasRef}
-          width={800}
-          height={600}
-          style={{ width: '100%', height: '100%', display: 'block' }}
-        />
-        {paused && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: ex(p, 'pauseOverlay'),
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <div style={{ textAlign: 'center' }}>
-              <div
-                className="pixel neon-yellow"
-                style={{
-                  fontSize: 22,
-                  color: ex(p, 'pauseTitle'),
-                  textShadow: ex(p, 'pauseTitleShadow'),
-                }}
-              >
-                EN PAUSA
-              </div>
-              <div
-                className="mono"
-                style={{
-                  fontSize: 11,
-                  color: ex(p, 'pauseText'),
-                  marginTop: 10,
-                  letterSpacing: '0.16em',
-                }}
-              >
-                PULSA REANUDAR PARA CONTINUAR
+      {/* Canvas responsivo — misma estructura en móvil y escritorio: el canvas nunca se remonta */}
+      <div className={isTouchMobile ? 'game-stage-area' : undefined}>
+        <div
+          className={isTouchMobile ? 'game-stage' : undefined}
+          style={isTouchMobile ? undefined : DESKTOP_STAGE}
+        >
+          <canvas
+            ref={canvasRef}
+            width={800}
+            height={600}
+            style={{ width: '100%', height: '100%', display: 'block' }}
+          />
+          {paused && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: ex(p, 'pauseOverlay'),
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <div style={{ textAlign: 'center' }}>
+                <div
+                  className="pixel neon-yellow"
+                  style={{
+                    fontSize: 22,
+                    color: ex(p, 'pauseTitle'),
+                    textShadow: ex(p, 'pauseTitleShadow'),
+                  }}
+                >
+                  EN PAUSA
+                </div>
+                <div
+                  className="mono"
+                  style={{
+                    fontSize: 11,
+                    color: ex(p, 'pauseText'),
+                    marginTop: 10,
+                    letterSpacing: '0.16em',
+                  }}
+                >
+                  PULSA REANUDAR PARA CONTINUAR
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      {isTouchMobile && (
+        <TouchControls
+          mapping={TOUCH_MAPPINGS.asteroids}
+          paused={paused}
+          onTogglePause={togglePause}
+          onExit={exit}
+          skin={skin}
+        />
+      )}
 
       {/* Modal de game over */}
       {over && (

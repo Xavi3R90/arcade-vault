@@ -4,6 +4,7 @@ import { useState, useEffect, useSyncExternalStore } from 'react'
 import type { Route, User, SavedScore, Game } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
 import { readSkin, serverSkin, subscribeSkin, writeSkin, type SkinId } from '@/lib/skins'
+import { readUser, serverUser, subscribeUser, writeUser } from '@/lib/userStore'
 import Nav from '@/components/Nav'
 import HomeScreen from '@/components/screens/HomeScreen'
 import Library from '@/components/screens/Library'
@@ -17,22 +18,17 @@ import TetrisScreen from '@/components/screens/TetrisScreen'
 import ArkanoidScreen from '@/components/screens/ArkanoidScreen'
 import SnakeScreen from '@/components/screens/SnakeScreen'
 
+// Rutas de juego jugables: en móvil táctil ocultan el Nav (SPEC 10).
+const GAME_ROUTES: readonly string[] = ['asteroids', 'tetris', 'arkanoid', 'snake']
+
 export default function Home() {
   const [route, setRoute] = useState<Route>({ name: 'home' })
-  const [user, setUser] = useState<User | null>(null)
+  // Usuario local: hidratado desde localStorage['av_user'] (servidor = null).
+  const user = useSyncExternalStore<User | null>(subscribeUser, readUser, serverUser)
   const [games, setGames] = useState<Game[]>([])
   // Skin global: hidratado desde localStorage['av-skin'] (servidor = 'classic').
   const skin = useSyncExternalStore<SkinId>(subscribeSkin, readSkin, serverSkin)
   const handleSkinChange = (s: SkinId) => writeSkin(s)
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('av_user')
-      if (stored) setUser(JSON.parse(stored))
-    } catch {
-      // ignore
-    }
-  }, [])
 
   useEffect(() => {
     createClient()
@@ -56,19 +52,9 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
 
-  const handleLogin = (u: User | null) => {
-    setUser(u)
-    if (u) {
-      localStorage.setItem('av_user', JSON.stringify(u))
-    } else {
-      localStorage.removeItem('av_user')
-    }
-  }
+  const handleLogin = (u: User | null) => writeUser(u)
 
-  const handleSignOut = () => {
-    setUser(null)
-    localStorage.removeItem('av_user')
-  }
+  const handleSignOut = () => writeUser(null)
 
   const handleSaveScore = async (entry: SavedScore) => {
     try {
@@ -108,7 +94,9 @@ export default function Home() {
       <AsteroidsScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} skin={skin} />
     )
   } else if (route.name === 'tetris') {
-    screen = <TetrisScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} />
+    screen = (
+      <TetrisScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} skin={skin} />
+    )
   } else if (route.name === 'arkanoid') {
     screen = (
       <ArkanoidScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} skin={skin} />
@@ -125,7 +113,11 @@ export default function Home() {
       <div className="av-noise" />
       {/* Replicates #root { position: relative; z-index: 2 } from the original template
           so all app content renders above av-bg (z-index:0) and av-noise (z-index:1) */}
-      <div id="root" data-skin={skin}>
+      <div
+        id="root"
+        data-skin={skin}
+        data-game-route={GAME_ROUTES.includes(route.name) ? '' : undefined}
+      >
         <Nav
           route={route}
           navigate={navigate}
@@ -136,6 +128,7 @@ export default function Home() {
         />
         <main className="av-main">{screen}</main>
         <footer
+          className="av-footer"
           style={{
             borderTop: '1px solid var(--line)',
             padding: '20px 32px',

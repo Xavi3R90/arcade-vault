@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 import type { Route, User, SavedScore } from '@/lib/types'
 import { DEFAULT_SKIN, type GamePalette, type SkinId } from '@/lib/skins'
 import { snakeSkins } from '@/lib/skins/snake'
+import TouchControls from '@/components/TouchControls'
+import { TOUCH_MAPPINGS } from '@/lib/touch'
+import { useIsTouchMobile } from '@/lib/useTouchMobile'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const W = 800
@@ -126,6 +129,7 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
   const [snakeLen, setSnakeLen] = useState(3)
   const [over, setOver] = useState(false)
   const [paused, setPaused] = useState(false)
+  const isTouchMobile = useIsTouchMobile()
   const [name, setName] = useState(user?.name ?? 'INVITADO')
   const [saved, setSaved] = useState(false)
 
@@ -315,8 +319,32 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const togglePause = () => {
+    if (overRef.current) return
+    const next = !pausedRef.current
+    pausedRef.current = next
+    setPaused(next)
+  }
+  const exit = () => navigate({ name: 'detalle', id: 'snake' })
+
+  const canvasEl = (
+    <canvas
+      ref={canvasRef}
+      width={800}
+      height={600}
+      style={{ width: '100%', height: '100%', display: 'block' }}
+    />
+  )
+  const DESKTOP_STAGE = {
+    position: 'relative',
+    width: '100%',
+    maxWidth: 800,
+    margin: '0 auto',
+    aspectRatio: '800 / 600',
+  } as const
+
   return (
-    <div className="av-player fade-in">
+    <div className={'av-player fade-in' + (isTouchMobile ? ' game-mobile' : '')}>
       <div
         className="player-hud"
         style={{ background: ex(p, 'hudBg'), borderColor: ex(p, 'hudBorder') }}
@@ -340,39 +368,34 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
           </div>
         </div>
         <div className="hud-actions">
-          <button
-            className="btn yellow"
-            onClick={() => {
-              if (overRef.current) return
-              const next = !pausedRef.current
-              pausedRef.current = next
-              setPaused(next)
-            }}
-          >
+          <button className="btn yellow" onClick={togglePause}>
             {paused ? 'REANUDAR' : 'PAUSA'}
           </button>
-          <button className="btn ghost" onClick={() => navigate({ name: 'detalle', id: 'snake' })}>
+          <button className="btn ghost" onClick={exit}>
             SALIR
           </button>
         </div>
       </div>
 
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: 800,
-          margin: '0 auto',
-          aspectRatio: '800 / 600',
-        }}
-      >
-        <canvas
-          ref={canvasRef}
-          width={800}
-          height={600}
-          style={{ width: '100%', height: '100%', display: 'block' }}
-        />
+      {/* Misma estructura en móvil y escritorio: el canvas nunca se remonta. */}
+      <div className={isTouchMobile ? 'game-stage-area' : undefined}>
+        <div
+          className={isTouchMobile ? 'game-stage' : undefined}
+          style={isTouchMobile ? undefined : DESKTOP_STAGE}
+        >
+          {canvasEl}
+        </div>
       </div>
+
+      {isTouchMobile && (
+        <TouchControls
+          mapping={TOUCH_MAPPINGS.snake}
+          paused={paused}
+          onTogglePause={togglePause}
+          onExit={exit}
+          skin={skin}
+        />
+      )}
 
       {over && (
         <div className="modal-bd">
