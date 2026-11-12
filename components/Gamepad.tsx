@@ -171,8 +171,10 @@ export default function Gamepad({
           disabled={disabled}
           onClick={onPause}
           aria-pressed={paused}
+          aria-label={paused ? 'Reanudar' : 'Pausa'}
         >
-          <span aria-hidden>{paused ? '▶' : '⏸'}</span> {paused ? 'REANUDAR' : 'PAUSA'}
+          <span aria-hidden>{paused ? '▶' : '⏸'}</span>
+          <span className="gp-label">{paused ? 'REANUDAR' : 'PAUSA'}</span>
         </button>
         <label className="gp-pill gp-skin">
           <select
@@ -189,8 +191,9 @@ export default function Gamepad({
             ))}
           </select>
         </label>
-        <button type="button" className="gp-pill gp-exit" onClick={onExit}>
-          <span aria-hidden>←</span> SALIR
+        <button type="button" className="gp-pill gp-exit" onClick={onExit} aria-label="Salir">
+          <span aria-hidden>←</span>
+          <span className="gp-label">SALIR</span>
         </button>
       </div>
     </div>

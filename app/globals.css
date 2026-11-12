@@ -3545,6 +3545,30 @@ html:has(#root.in-game) body {
     min-height: 44px;
   }
 }
+/* Móvil girado (alto ≤ 500px): B/A + 3 pills apiladas no caben en el alto.
+   PAUSA y SALIR pasan a solo icono en una fila; el skin sigue en el menú. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .is-console .gp-bar {
+    grid-template-columns: 1fr 1fr;
+    width: 144px;
+  }
+  .is-console .gp-skin {
+    display: none;
+  }
+  .is-console .gp-pill {
+    padding: 0;
+    font-size: 18px;
+    letter-spacing: 0;
+  }
+  .is-console .gp-pill .gp-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
 
 /* Tetris: tablero (stage) + HUD lateral. En móvil vertical el HUD pasa a una
    fila sobre el tablero para no pisar los controles táctiles. */
