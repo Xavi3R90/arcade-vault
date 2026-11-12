@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Route, SavedScore, User } from '@/lib/types'
-import TouchControls from '@/components/TouchControls'
+import GameStage from '@/components/GameStage'
 import TouchToggle from '@/components/TouchToggle'
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -406,16 +406,18 @@ export default function TetrisScreen({ navigate, user, onSaveScore }: Props) {
     <div className="av-player fade-in">
       <div className="tetris-layout">
         {/* Stage: board canvas (portrait 1:2) + controles táctiles */}
-        <div
-          className="game-stage"
-          style={
-            {
-              '--stage-ar': 0.5,
-              '--stage-max-w': '300px',
-            } as React.CSSProperties
-          }
+        <GameStage
+          game="tetris"
+          title="Tetris"
+          color="cyan"
+          aspect={0.5}
+          maxWidth={300}
+          paused={paused}
+          onPause={togglePause}
+          onExit={() => navigate({ name: 'detalle', id: 'tetris' })}
+          disabled={over}
         >
-          <div className="game-canvas" style={{ aspectRatio: '1 / 2' }}>
+          <>
             <canvas
               ref={boardRef}
               width={300}
@@ -466,7 +468,7 @@ export default function TetrisScreen({ navigate, user, onSaveScore }: Props) {
                 <div className="modal">
                   <h2>FIN DEL JUEGO</h2>
                   <div className="final-label">PUNTUACIÓN FINAL</div>
-                  <div className="final">{gsRef.current.score.toLocaleString('es-ES')}</div>
+                  <div className="final">{score.toLocaleString('es-ES')}</div>
                   {!saved ? (
                     <form
                       className="input-row"
@@ -510,9 +512,8 @@ export default function TetrisScreen({ navigate, user, onSaveScore }: Props) {
                 </div>
               </div>
             )}
-          </div>
-          <TouchControls game="tetris" color="cyan" onPause={togglePause} disabled={over} />
-        </div>
+          </>
+        </GameStage>
 
         {/* Side HUD */}
         <div className="tetris-side">

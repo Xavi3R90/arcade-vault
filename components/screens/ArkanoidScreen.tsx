@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Route, User, SavedScore } from '@/lib/types'
 import { DEFAULT_SKIN, type GamePalette, type SkinId } from '@/lib/skins'
 import { arkanoidSkins } from '@/lib/skins/arkanoid'
-import TouchControls from '@/components/TouchControls'
+import GameStage from '@/components/GameStage'
 import TouchToggle from '@/components/TouchToggle'
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -500,20 +500,19 @@ export default function ArkanoidScreen({
         </div>
       </div>
 
-      <div
-        className="game-stage"
-        style={{ '--stage-ar': 800 / 600, '--stage-max-w': '800px' } as React.CSSProperties}
+      <GameStage
+        game="arkanoid"
+        title="Arkanoid"
+        color="magenta"
+        aspect={800 / 600}
+        maxWidth={800}
+        paused={paused}
+        onPause={togglePause}
+        onExit={() => navigate({ name: 'detalle', id: 'arkanoid' })}
+        disabled={over !== null}
       >
-        <div className="game-canvas" style={{ aspectRatio: '800 / 600' }}>
-          <canvas ref={canvasRef} width={800} height={600} />
-        </div>
-        <TouchControls
-          game="arkanoid"
-          color="magenta"
-          onPause={togglePause}
-          disabled={over !== null}
-        />
-      </div>
+        <canvas ref={canvasRef} width={800} height={600} />
+      </GameStage>
 
       {over && (
         <div className="modal-bd">

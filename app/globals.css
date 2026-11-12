@@ -3101,222 +3101,65 @@ a {
   animation: blink 1s steps(1) infinite;
 }
 
-/* ===== TOUCH CONTROLS (SPEC 10) =====
-   Botones virtuales para jugar en pantallas táctiles.
-   --tc: color base del juego (data-color = games.color). */
-.touch-controls {
-  --tc: var(--cyan);
-  --tc-rgb: 0, 245, 255;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 16px;
-  padding: 12px 4px;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-}
-.touch-controls[data-color='cyan'] {
-  --tc: var(--cyan);
-  --tc-rgb: 0, 245, 255;
-}
-.touch-controls[data-color='magenta'] {
-  --tc: var(--magenta);
-  --tc-rgb: 255, 0, 110;
-}
-.touch-controls[data-color='yellow'] {
-  --tc: var(--yellow);
-  --tc-rgb: 245, 255, 0;
-}
-.touch-controls[data-color='green'] {
-  --tc: var(--green);
-  --tc-rgb: 0, 255, 136;
-}
-
-.touch-zone {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-.touch-zone[data-zone='right'] {
-  justify-content: flex-end;
-}
-
-/* Cruceta de Snake: grid 3×3 con ▲ arriba, ◀ ▶ en medio y ▼ abajo */
-.touch-zone[data-zone='left'][data-game='snake'] {
-  display: grid;
-  grid-template-columns: repeat(3, 56px);
-  grid-template-rows: repeat(3, 56px);
-  gap: 6px;
-}
-.touch-zone[data-game='snake'] [data-btn='up'] {
-  grid-area: 1 / 2;
-}
-.touch-zone[data-game='snake'] [data-btn='left'] {
-  grid-area: 2 / 1;
-}
-.touch-zone[data-game='snake'] [data-btn='right'] {
-  grid-area: 2 / 3;
-}
-.touch-zone[data-game='snake'] [data-btn='down'] {
-  grid-area: 3 / 2;
-}
-
-.touch-btn {
-  flex-shrink: 0;
-  min-width: 56px;
-  min-height: 56px;
-  padding: 0 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--tc);
-  border-radius: 12px;
-  background: rgba(10, 10, 15, 0.72);
-  color: var(--tc);
-  font-family: var(--pixel);
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  transition:
-    transform 60ms ease,
-    background-color 60ms ease;
-}
-.touch-btn[data-btn='fire'] {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  min-width: 84px;
-}
-.touch-btn.pressed {
-  transform: scale(0.94);
-}
-.touch-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-.touch-btn:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
-}
-.touch-pause {
-  font-size: 16px;
-  color: var(--ink);
-  border-color: var(--ink-dim);
-}
-
-/* --- Skins de los botones táctiles ---
-   Fondos opacos para que el contraste de la etiqueta sea determinista (≥ 4.5:1).
-   Pulsado = relleno con el color del botón y etiqueta oscura. */
-
-/* CLÁSICO: negro puro, borde y etiqueta del color del juego, sin glow */
-[data-skin='classic'] .touch-btn {
-  background: #000;
-  color: var(--tc);
-  border-color: var(--tc);
-  box-shadow: none;
-}
-[data-skin='classic'] .touch-btn.pressed {
-  background: var(--tc);
-  color: #000;
-}
-[data-skin='classic'] .touch-pause {
-  color: #fff;
-  border-color: #fff;
-}
-
-/* NEÓN: fondo nocturno, glow del color del juego en borde y etiqueta */
-[data-skin='neon'] .touch-btn {
-  background: #0b0b14;
-  color: var(--tc);
-  border-color: var(--tc);
-  box-shadow:
-    0 0 10px rgba(var(--tc-rgb), 0.55),
-    inset 0 0 8px rgba(var(--tc-rgb), 0.25);
-  text-shadow: 0 0 6px rgba(var(--tc-rgb), 0.8);
-}
-[data-skin='neon'] .touch-btn.pressed {
-  background: var(--tc);
-  color: #0b0b14;
-  text-shadow: none;
-  box-shadow: 0 0 18px rgba(var(--tc-rgb), 0.9);
-}
-[data-skin='neon'] .touch-pause {
-  color: var(--ink);
-  border-color: var(--magenta);
-  box-shadow: 0 0 10px rgba(255, 0, 110, 0.55);
-  text-shadow: none;
-}
-
-/* RETRO: fósforo verde, esquinas rectas, sombra escalonada de 8 bits */
-[data-skin='retro'] .touch-btn {
-  background: #081208;
-  color: #b6ffc4;
-  border-color: #2fa84a;
-  border-radius: 0;
-  box-shadow: 4px 4px 0 #2fa84a;
-  text-shadow: none;
-}
-[data-skin='retro'] .touch-btn.pressed {
-  background: #b6ffc4;
-  color: #081208;
-  box-shadow: 0 0 0 #2fa84a;
-  transform: translate(4px, 4px);
-}
-[data-skin='retro'] .touch-pause {
-  color: #b6ffc4;
-  border-color: #b6ffc4;
-}
-
-/* ===== GAME STAGE (SPEC 10) =====
-   Contenedor común: canvas + zonas de controles táctiles.
-   .touch-controls usa display: contents dentro del stage para que sus dos
-   zonas sean celdas del grid (y hereden --tc).
-   Variables por juego (inline en cada screen):
+/* ===== GAME STAGE + GAMEPAD (SPEC 10) =====
+   <GameStage> envuelve el canvas de todos los juegos.
+   - Escritorio / sin controles táctiles: solo el canvas escalado.
+   - .is-console (controles táctiles visibles): canvas dentro del bezel CRT con
+     barra de estado y gamepad común (cruceta, B/A, PAUSA · skin · SALIR).
+   Variables por juego (inline desde GameStage):
      --stage-ar     relación ancho/alto del canvas (800/600 = 1.3333, Tetris 0.5)
      --stage-max-w  ancho máximo del canvas
-   --stage-chrome: alto ocupado por nav + HUD + márgenes sobre el canvas. */
+   --stage-chrome:      alto ocupado por nav + HUD + márgenes sobre el stage.
+   --stage-controls-h:  alto que el modo consola añade bajo el canvas. */
 .game-stage {
   --stage-ar: 1.3333;
   --stage-max-w: 800px;
   --stage-chrome: 230px;
   --stage-controls-h: 0px;
+  --tc: var(--cyan);
+  --tc-rgb: 0, 245, 255;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-areas:
-    'canvas canvas'
-    'left right';
-  align-items: end;
-  column-gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'screen';
+  justify-items: center;
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   padding-bottom: env(safe-area-inset-bottom);
-}
-/* Bloqueo de gestos en partida (SPEC 10): sin scroll, pinch ni doble-tap zoom
-   sobre el área de juego; sin pull-to-refresh/overscroll mientras hay un juego.
-   El scroll real lo hace el documento, por eso el overscroll se aplica también
-   a html/body vía :has(). */
-.game-stage {
+  /* Bloqueo de gestos: sin scroll, pinch ni doble-tap zoom sobre el área de juego */
   touch-action: none;
 }
+.game-stage[data-color='cyan'] {
+  --tc: var(--cyan);
+  --tc-rgb: 0, 245, 255;
+}
+.game-stage[data-color='magenta'] {
+  --tc: var(--magenta);
+  --tc-rgb: 255, 0, 110;
+}
+.game-stage[data-color='yellow'] {
+  --tc: var(--yellow);
+  --tc-rgb: 245, 255, 0;
+}
+.game-stage[data-color='green'] {
+  --tc: var(--green);
+  --tc-rgb: 0, 255, 136;
+}
+/* Sin pull-to-refresh/overscroll mientras hay un juego. El scroll real lo hace
+   el documento, por eso se aplica también a html/body vía :has(). */
 #root.in-game,
 html:has(#root.in-game),
 html:has(#root.in-game) body {
   overscroll-behavior: none;
 }
-.game-stage:has(.touch-controls) {
-  /* espacio que ocupan los controles bajo el canvas en vertical */
-  --stage-controls-h: 210px;
+
+.game-screen {
+  grid-area: screen;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
 }
-.game-stage > .game-canvas {
-  grid-area: canvas;
-  justify-self: center;
+.game-canvas {
   position: relative;
   /* ancho limitado por: contenedor, máximo del juego y alto disponible */
   width: min(
@@ -3331,43 +3174,372 @@ html:has(#root.in-game) body {
   );
   aspect-ratio: var(--stage-ar);
 }
-.game-stage > .game-canvas canvas {
+.game-canvas > canvas {
   width: 100%;
   height: 100%;
   display: block;
 }
-.game-stage .touch-controls {
-  display: contents;
+
+/* --- Modo consola portátil: bezel CRT + gamepad (vertical) --- */
+.game-stage.is-console {
+  /* bezel (24) + barra de estado (22) + cruceta (176) + barra (48) + huecos (40) */
+  --stage-controls-h: 310px;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'screen screen'
+    'dpad   ab'
+    'bar    bar';
+  align-items: center;
+  row-gap: 20px;
+  column-gap: 12px;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.game-stage .touch-zone[data-zone='left'] {
-  grid-area: left;
-  justify-self: start;
-  padding: 12px 0;
+.is-console .game-screen {
+  width: 100%;
+  padding: 14px 14px 10px;
+  border-radius: 28px;
+  background: #050507;
+  box-shadow:
+    0 0 0 6px #1b1b22,
+    0 0 0 7px #2a2a35,
+    0 30px 80px -20px rgba(var(--tc-rgb), 0.35);
 }
-.game-stage .touch-zone[data-zone='right'] {
-  grid-area: right;
-  justify-self: end;
-  padding: 12px 0;
+.is-console .game-canvas {
+  /* el bezel resta 28px de ancho al contenedor */
+  width: min(
+    100%,
+    var(--stage-max-w),
+    calc((100vh - var(--stage-chrome) - var(--stage-controls-h)) * var(--stage-ar))
+  );
+  width: min(
+    100%,
+    var(--stage-max-w),
+    calc((100dvh - var(--stage-chrome) - var(--stage-controls-h)) * var(--stage-ar))
+  );
+  border-radius: 10px / 22px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: inset 0 0 20px rgba(var(--tc-rgb), 0.15);
+}
+.gp-status {
+  align-self: stretch;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 0 4px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.gp-status > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gp-status > .led {
+  flex-shrink: 0;
+}
+/* En pantallas estrechas la barra de estado cabe en una línea sin "CARGA" */
+@media (max-width: 480px) {
+  .gp-status > span:last-child {
+    display: none;
+  }
 }
 
-/* Horizontal: zona izquierda | canvas | zona derecha. Los controles ya no
-   restan alto, solo ancho. */
+/* El gamepad no genera caja: cruceta, A/B y barra son celdas del grid del stage */
+.gamepad {
+  display: contents;
+}
+.gp-dpad {
+  --gp-cell: 56px;
+  grid-area: dpad;
+  justify-self: start;
+  display: grid;
+  grid-template-columns: repeat(3, var(--gp-cell));
+  grid-template-rows: repeat(3, var(--gp-cell));
+  gap: 4px;
+}
+.gp-dpad [data-slot='up'] {
+  grid-area: 1 / 2;
+}
+.gp-dpad [data-slot='left'] {
+  grid-area: 2 / 1;
+}
+.gp-dpad [data-slot='right'] {
+  grid-area: 2 / 3;
+}
+.gp-dpad [data-slot='down'] {
+  grid-area: 3 / 2;
+}
+.gp-hub {
+  grid-area: 2 / 2;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.gp-ab {
+  grid-area: ab;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-right: 4px;
+}
+
+.gp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition:
+    transform 60ms ease,
+    background-color 60ms ease,
+    box-shadow 60ms ease;
+}
+.gp-arrow {
+  width: var(--gp-cell);
+  height: var(--gp-cell);
+  border-radius: 10px;
+  border: 1px solid #3a3c48;
+  background: #1c1d24;
+  color: #f4f5fa;
+  font-family: var(--mono);
+  font-size: 26px;
+  box-shadow: 0 3px 0 #0b0b10;
+}
+.gp-round {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid;
+  font-family: var(--pixel);
+  font-size: 18px;
+}
+.gp-round[data-slot='b'] {
+  background: #14273d;
+  border-color: #4f86c6;
+  color: #a7cdff;
+}
+.gp-round[data-slot='a'] {
+  background: #3a1418;
+  border-color: #c2474f;
+  color: #ffa3a8;
+}
+.gp-btn.pressed {
+  transform: translateY(2px) scale(0.96);
+  box-shadow: none;
+  filter: brightness(1.35);
+}
+/* Slot sin binding en este juego: atenuado y sin interacción */
+.gp-btn.unused {
+  opacity: 0.3;
+  cursor: default;
+  box-shadow: none;
+}
+.gp-btn:disabled:not(.unused) {
+  opacity: 0.5;
+  cursor: default;
+}
+.gp-btn:focus-visible,
+.gp-pill:focus-visible,
+.gp-skin:focus-within {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Barra inferior: PAUSA · skin · SALIR */
+.gp-bar {
+  grid-area: bar;
+  display: grid;
+  grid-template-columns: 1.3fr 1.1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+.gp-pill {
+  position: relative;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  border: 1px solid #3a3c48;
+  background: #1c1d24;
+  color: #e8e9f2;
+  font-family: var(--mono);
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.gp-pause {
+  background: #2a2a0a;
+  border-color: #b9b52a;
+  color: var(--yellow);
+}
+.gp-pause:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.gp-skin {
+  padding: 0;
+}
+.gp-skin select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 100%;
+  min-height: 46px;
+  padding: 0 24px 0 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  /* ≥16px evita el auto-zoom de iOS al abrir el select */
+  font-size: 16px;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  outline: none;
+}
+.gp-skin select option {
+  background: #1c1d24;
+  color: #e8e9f2;
+}
+.gp-skin::after {
+  content: '▾';
+  position: absolute;
+  right: 10px;
+  pointer-events: none;
+  font-size: 14px;
+}
+
+/* --- Skins del gamepad ---
+   Fondos opacos para que el contraste de las etiquetas sea determinista (≥ 4.5:1).
+   CLÁSICO = estilos base (gris carbón, B azul y A roja). */
+
+/* NEÓN: bordes y glifos con glow del color del juego */
+[data-skin='neon'] .is-console .game-screen {
+  box-shadow:
+    0 0 0 6px #1b1b22,
+    0 0 0 7px rgba(var(--tc-rgb), 0.6),
+    0 0 40px -6px rgba(var(--tc-rgb), 0.55);
+}
+[data-skin='neon'] .gp-arrow {
+  border-color: rgba(var(--tc-rgb), 0.6);
+  background: #0b0b14;
+  color: #fff;
+  text-shadow: 0 0 6px rgba(var(--tc-rgb), 0.9);
+  box-shadow:
+    0 0 10px rgba(var(--tc-rgb), 0.3),
+    inset 0 0 8px rgba(var(--tc-rgb), 0.15);
+}
+[data-skin='neon'] .gp-round[data-slot='b'] {
+  box-shadow: 0 0 16px rgba(79, 134, 198, 0.65);
+  text-shadow: 0 0 6px rgba(167, 205, 255, 0.9);
+}
+[data-skin='neon'] .gp-round[data-slot='a'] {
+  box-shadow: 0 0 16px rgba(194, 71, 79, 0.65);
+  text-shadow: 0 0 6px rgba(255, 163, 168, 0.9);
+}
+[data-skin='neon'] .gp-pill {
+  background: #0b0b14;
+  border-color: rgba(var(--tc-rgb), 0.45);
+}
+[data-skin='neon'] .gp-pause {
+  border-color: var(--yellow);
+  box-shadow: 0 0 12px rgba(245, 255, 0, 0.35);
+}
+[data-skin='neon'] .gp-btn.unused {
+  box-shadow: none;
+  text-shadow: none;
+}
+
+/* RETRO: fósforo verde, esquinas rectas, sombra escalonada de 8 bits */
+[data-skin='retro'] .is-console .game-screen {
+  border-radius: 0;
+  box-shadow: 0 0 0 4px #2fa84a;
+}
+[data-skin='retro'] .is-console .game-canvas {
+  border-radius: 0;
+}
+[data-skin='retro'] .gp-arrow,
+[data-skin='retro'] .gp-round,
+[data-skin='retro'] .gp-pill {
+  border-radius: 0;
+  border: 2px solid #2fa84a;
+  background: #081208;
+  color: #b6ffc4;
+  box-shadow: 4px 4px 0 #2fa84a;
+  text-shadow: none;
+}
+[data-skin='retro'] .gp-round[data-slot='a'] {
+  background: #b6ffc4;
+  color: #081208;
+}
+[data-skin='retro'] .gp-pill {
+  font-family: var(--pixel);
+  font-size: 10px;
+}
+[data-skin='retro'] .gp-skin select {
+  font-size: 16px;
+}
+[data-skin='retro'] .gp-btn.pressed {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 #2fa84a;
+  filter: none;
+}
+[data-skin='retro'] .gp-btn.unused {
+  box-shadow: none;
+}
+
+/* Duplicados: en modo consola PAUSA/SALIR viven en el gamepad, el HUD solo
+   conserva el toggle de controles. */
+.av-player:has(.game-stage.is-console) .hud-actions > .btn:not(.touch-toggle) {
+  display: none;
+}
+
+/* Horizontal: cruceta | pantalla | A/B + barra en columna. Los controles solo
+   restan ancho; en alto solo cuentan bezel y barra de estado. */
 @media (orientation: landscape) {
-  .game-stage {
+  .game-stage.is-console {
+    --stage-controls-h: 70px;
     grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: 'left canvas right';
-    align-items: center;
+    grid-template-rows: 1fr auto;
+    grid-template-areas:
+      'dpad screen ab'
+      'dpad screen bar';
+    row-gap: 14px;
+    column-gap: 16px;
+    max-width: none;
   }
-  .game-stage:has(.touch-controls) {
-    --stage-controls-h: 0px;
+  .is-console .gp-dpad {
+    align-self: center;
   }
-  .game-stage .touch-zone {
-    flex-direction: column;
-    flex-wrap: nowrap;
-    padding: 0;
+  .is-console .gp-ab {
+    align-self: end;
+    justify-self: center;
+    padding-right: 0;
   }
-  .game-stage .touch-zone[data-zone='left'][data-game='snake'] {
-    flex-direction: initial;
+  .is-console .gp-bar {
+    align-self: start;
+    grid-template-columns: 1fr;
+    width: 168px;
+    gap: 8px;
+  }
+  .is-console .gp-pill {
+    min-height: 44px;
   }
 }
 

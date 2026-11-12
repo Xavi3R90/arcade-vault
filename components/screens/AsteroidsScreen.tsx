@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Route, User, SavedScore } from '@/lib/types'
 import { DEFAULT_SKIN, type GamePalette, type SkinId } from '@/lib/skins'
 import { asteroidsSkins } from '@/lib/skins/asteroids'
-import TouchControls from '@/components/TouchControls'
+import GameStage from '@/components/GameStage'
 import TouchToggle from '@/components/TouchToggle'
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -666,51 +666,55 @@ export default function AsteroidsScreen({
       </div>
 
       {/* Canvas responsivo */}
-      <div
-        className="game-stage"
-        style={{ '--stage-ar': 800 / 600, '--stage-max-w': '800px' } as React.CSSProperties}
+      <GameStage
+        game="asteroids"
+        title="Asteroids"
+        color="yellow"
+        aspect={800 / 600}
+        maxWidth={800}
+        paused={paused}
+        onPause={togglePause}
+        onExit={() => navigate({ name: 'detalle', id: 'asteroids' })}
+        disabled={over}
       >
-        <div className="game-canvas" style={{ aspectRatio: '800 / 600' }}>
-          <canvas ref={canvasRef} width={800} height={600} />
-          {paused && (
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background: ex(p, 'pauseOverlay'),
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <div style={{ textAlign: 'center' }}>
-                <div
-                  className="pixel neon-yellow"
-                  style={{
-                    fontSize: 22,
-                    color: ex(p, 'pauseTitle'),
-                    textShadow: ex(p, 'pauseTitleShadow'),
-                  }}
-                >
-                  EN PAUSA
-                </div>
-                <div
-                  className="mono"
-                  style={{
-                    fontSize: 11,
-                    color: ex(p, 'pauseText'),
-                    marginTop: 10,
-                    letterSpacing: '0.16em',
-                  }}
-                >
-                  PULSA REANUDAR PARA CONTINUAR
-                </div>
+        <canvas ref={canvasRef} width={800} height={600} />
+        {paused && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: ex(p, 'pauseOverlay'),
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <div
+                className="pixel neon-yellow"
+                style={{
+                  fontSize: 22,
+                  color: ex(p, 'pauseTitle'),
+                  textShadow: ex(p, 'pauseTitleShadow'),
+                }}
+              >
+                EN PAUSA
+              </div>
+              <div
+                className="mono"
+                style={{
+                  fontSize: 11,
+                  color: ex(p, 'pauseText'),
+                  marginTop: 10,
+                  letterSpacing: '0.16em',
+                }}
+              >
+                PULSA REANUDAR PARA CONTINUAR
               </div>
             </div>
-          )}
-        </div>
-        <TouchControls game="asteroids" color="yellow" onPause={togglePause} disabled={over} />
-      </div>
+          </div>
+        )}
+      </GameStage>
 
       {/* Modal de game over */}
       {over && (

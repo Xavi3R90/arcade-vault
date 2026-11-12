@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Route, User, SavedScore } from '@/lib/types'
 import { DEFAULT_SKIN, type GamePalette, type SkinId } from '@/lib/skins'
 import { snakeSkins } from '@/lib/skins/snake'
-import TouchControls from '@/components/TouchControls'
+import GameStage from '@/components/GameStage'
 import TouchToggle from '@/components/TouchToggle'
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -359,15 +359,19 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
         </div>
       </div>
 
-      <div
-        className="game-stage"
-        style={{ '--stage-ar': 800 / 600, '--stage-max-w': '800px' } as React.CSSProperties}
+      <GameStage
+        game="snake"
+        title="Snake"
+        color="green"
+        aspect={800 / 600}
+        maxWidth={800}
+        paused={paused}
+        onPause={togglePause}
+        onExit={() => navigate({ name: 'detalle', id: 'snake' })}
+        disabled={over}
       >
-        <div className="game-canvas" style={{ aspectRatio: '800 / 600' }}>
-          <canvas ref={canvasRef} width={800} height={600} />
-        </div>
-        <TouchControls game="snake" color="green" onPause={togglePause} disabled={over} />
-      </div>
+        <canvas ref={canvasRef} width={800} height={600} />
+      </GameStage>
 
       {over && (
         <div className="modal-bd">
