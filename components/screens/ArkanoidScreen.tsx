@@ -4,6 +4,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Route, User, SavedScore } from '@/lib/types'
 import { DEFAULT_SKIN, type GamePalette, type SkinId } from '@/lib/skins'
 import { arkanoidSkins } from '@/lib/skins/arkanoid'
+import TouchControls from '@/components/TouchControls'
+import { TOUCH_MAPPINGS } from '@/lib/touch'
+import { useIsTouchMobile } from '@/lib/useTouchMobile'
+
+// Contenedor del canvas en escritorio (en móvil lo sustituye .game-stage, SPEC 10).
+const DESKTOP_STAGE = {
+  position: 'relative',
+  width: '100%',
+  maxWidth: 800,
+  margin: '0 auto',
+  aspectRatio: '800 / 600',
+} as const
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const W = 800
@@ -188,6 +200,7 @@ export default function ArkanoidScreen({
   const [lives, setLives] = useState(3)
   const [level, setLevel] = useState(1)
   const [paused, setPaused] = useState(false)
+  const isTouchMobile = useIsTouchMobile()
   const [over, setOver] = useState<'gameover' | 'win' | null>(null)
   const [name, setName] = useState(user?.name ?? 'INVITADO')
   const [saved, setSaved] = useState(false)
@@ -437,8 +450,10 @@ export default function ArkanoidScreen({
     setSaved(false)
   }, [])
 
+  const exit = () => navigate({ name: 'detalle', id: 'arkanoid' })
+
   return (
-    <div className="av-player fade-in">
+    <div className={'av-player fade-in' + (isTouchMobile ? ' game-mobile' : '')}>
       <div
         className="player-hud"
         style={{ background: ex(p, 'hudBg'), borderColor: ex(p, 'hudBorder') }}
@@ -488,31 +503,36 @@ export default function ArkanoidScreen({
           <button className="btn yellow" onClick={togglePause}>
             {paused ? 'REANUDAR' : 'PAUSA'}
           </button>
-          <button
-            className="btn ghost"
-            onClick={() => navigate({ name: 'detalle', id: 'arkanoid' })}
-          >
+          <button className="btn ghost" onClick={exit}>
             SALIR
           </button>
         </div>
       </div>
 
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: 800,
-          margin: '0 auto',
-          aspectRatio: '800 / 600',
-        }}
-      >
-        <canvas
-          ref={canvasRef}
-          width={800}
-          height={600}
-          style={{ width: '100%', height: '100%', display: 'block' }}
-        />
+      {/* Misma estructura en móvil y escritorio: el canvas nunca se remonta. */}
+      <div className={isTouchMobile ? 'game-stage-area' : undefined}>
+        <div
+          className={isTouchMobile ? 'game-stage' : undefined}
+          style={isTouchMobile ? undefined : DESKTOP_STAGE}
+        >
+          <canvas
+            ref={canvasRef}
+            width={800}
+            height={600}
+            style={{ width: '100%', height: '100%', display: 'block' }}
+          />
+        </div>
       </div>
+
+      {isTouchMobile && (
+        <TouchControls
+          mapping={TOUCH_MAPPINGS.arkanoid}
+          paused={paused}
+          onTogglePause={togglePause}
+          onExit={exit}
+          skin={skin}
+        />
+      )}
 
       {over && (
         <div className="modal-bd">

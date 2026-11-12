@@ -2,6 +2,33 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Route, SavedScore, User } from '@/lib/types'
+import { DEFAULT_SKIN, type SkinId } from '@/lib/skins'
+import TouchControls from '@/components/TouchControls'
+import { TOUCH_MAPPINGS } from '@/lib/touch'
+import { useIsTouchMobile } from '@/lib/useTouchMobile'
+
+// Layout de escritorio (en móvil lo sustituyen .tetris-layout/.tetris-board/.tetris-side, SPEC 10).
+const DESKTOP_LAYOUT = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'flex-start',
+  gap: 24,
+  padding: '32px 16px',
+} as const
+const DESKTOP_BOARD = {
+  position: 'relative',
+  aspectRatio: '1 / 2',
+  maxHeight: 600,
+  height: '80vh',
+  flexShrink: 0,
+} as const
+const DESKTOP_SIDE = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 20,
+  paddingTop: 8,
+  minWidth: 128,
+} as const
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -253,9 +280,11 @@ interface Props {
   navigate: (r: Route) => void
   user: User | null
   onSaveScore: (entry: SavedScore) => void
+  // Tetris aún no tiene skins propios; solo alimenta el selector del gamepad móvil.
+  skin?: SkinId
 }
 
-export default function TetrisScreen({ navigate, user, onSaveScore }: Props) {
+export default function TetrisScreen({ navigate, user, onSaveScore, skin = DEFAULT_SKIN }: Props) {
   const boardRef = useRef<HTMLCanvasElement>(null)
   const nextRef = useRef<HTMLCanvasElement>(null)
   const gsRef = useRef<GS>(mkGs())
@@ -267,6 +296,7 @@ export default function TetrisScreen({ navigate, user, onSaveScore }: Props) {
   const [lines, setLines] = useState(0)
   const [level, setLevel] = useState(1)
   const [paused, setPaused] = useState(false)
+  const isTouchMobile = useIsTouchMobile()
   const [over, setOver] = useState(false)
   const [name, setName] = useState((user?.name ?? 'INVITADO').slice(0, 10).toUpperCase())
   const [saved, setSaved] = useState(false)
@@ -400,127 +430,67 @@ export default function TetrisScreen({ navigate, user, onSaveScore }: Props) {
     setPaused((p) => !p)
   }, [])
 
+  const exit = () => navigate({ name: 'detalle', id: 'tetris' })
+  const m = isTouchMobile
+
   return (
-    <div className="av-player fade-in">
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-          gap: 24,
-          padding: '32px 16px',
-        }}
-      >
+    <div className={'av-player fade-in' + (m ? ' game-mobile' : '')}>
+      {/* Misma estructura en móvil y escritorio: los canvas nunca se remontan (SPEC 10). */}
+      <div className={m ? 'tetris-layout' : undefined} style={m ? undefined : DESKTOP_LAYOUT}>
         {/* Board canvas — portrait 1:2 */}
         <div
-          style={{
-            position: 'relative',
-            aspectRatio: '1 / 2',
-            maxHeight: 600,
-            height: '80vh',
-            flexShrink: 0,
-          }}
+          className={m ? 'game-stage-area' : undefined}
+          style={m ? undefined : { flexShrink: 0 }}
         >
-          <canvas
-            ref={boardRef}
-            width={300}
-            height={600}
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'block',
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: '#050510',
-            }}
-          />
-
-          {/* Pause overlay */}
-          {paused && !over && (
-            <div
+          <div className={m ? 'tetris-board' : undefined} style={m ? undefined : DESKTOP_BOARD}>
+            <canvas
+              ref={boardRef}
+              width={300}
+              height={600}
               style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'rgba(0,0,0,0.7)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                width: '100%',
+                height: '100%',
+                display: 'block',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: '#050510',
               }}
-            >
-              <div style={{ textAlign: 'center' }}>
-                <div className="pixel neon-cyan" style={{ fontSize: 20 }}>
-                  EN PAUSA
-                </div>
-                <div
-                  className="mono"
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--ink-dim)',
-                    marginTop: 10,
-                    letterSpacing: '0.16em',
-                  }}
-                >
-                  PULSA REANUDAR PARA CONTINUAR
-                </div>
-              </div>
-            </div>
-          )}
+            />
 
-          {/* Game over modal */}
-          {over && (
-            <div className="modal-bd">
-              <div className="modal">
-                <h2>FIN DEL JUEGO</h2>
-                <div className="final-label">PUNTUACIÓN FINAL</div>
-                <div className="final">{gsRef.current.score.toLocaleString('es-ES')}</div>
-                {!saved ? (
-                  <div className="input-row">
-                    <input
-                      value={name}
-                      maxLength={10}
-                      onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
-                      placeholder="TUS INICIALES"
-                    />
-                    <button
-                      className="btn cyan"
-                      onClick={() => {
-                        onSaveScore({
-                          game: 'tetris',
-                          score: gsRef.current.score,
-                          name,
-                          at: Date.now(),
-                        })
-                        setSaved(true)
-                      }}
-                    >
-                      GUARDAR PUNTUACIÓN
-                    </button>
+            {/* Pause overlay */}
+            {paused && !over && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(0,0,0,0.7)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div style={{ textAlign: 'center' }}>
+                  <div className="pixel neon-cyan" style={{ fontSize: 20 }}>
+                    EN PAUSA
                   </div>
-                ) : (
-                  <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
-                )}
-                <div className="actions">
-                  <button className="btn" onClick={restartGame}>
-                    JUGAR DE NUEVO
-                  </button>
-                  <button className="btn cyan" onClick={() => navigate({ name: 'games' })}>
-                    VOLVER AL VAULT
-                  </button>
+                  <div
+                    className="mono"
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--ink-dim)',
+                      marginTop: 10,
+                      letterSpacing: '0.16em',
+                    }}
+                  >
+                    PULSA REANUDAR PARA CONTINUAR
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Side HUD */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 20,
-            paddingTop: 8,
-            minWidth: 128,
-          }}
-        >
+        {/* Side HUD (en móvil: fila compacta encima del tablero) */}
+        <div className={m ? 'tetris-side' : undefined} style={m ? undefined : DESKTOP_SIDE}>
           <div className="hud-stat">
             <div className="l">Puntuación</div>
             <div className="v">{score.toLocaleString('es-ES')}</div>
@@ -534,7 +504,7 @@ export default function TetrisScreen({ navigate, user, onSaveScore }: Props) {
             <div className="v">{String(level).padStart(2, '0')}</div>
           </div>
 
-          <div>
+          <div className="tetris-next">
             <div
               style={{
                 fontSize: 10,
@@ -563,15 +533,67 @@ export default function TetrisScreen({ navigate, user, onSaveScore }: Props) {
             <button className={`btn ${paused ? 'cyan' : 'yellow'}`} onClick={togglePause}>
               {paused ? 'REANUDAR' : 'PAUSA'}
             </button>
-            <button
-              className="btn ghost"
-              onClick={() => navigate({ name: 'detalle', id: 'tetris' })}
-            >
+            <button className="btn ghost" onClick={exit}>
               SALIR
             </button>
           </div>
         </div>
       </div>
+
+      {isTouchMobile && (
+        <TouchControls
+          mapping={TOUCH_MAPPINGS.tetris}
+          paused={paused}
+          onTogglePause={togglePause}
+          onExit={exit}
+          skin={skin}
+        />
+      )}
+
+      {/* Game over modal (fuera del tablero: en móvil .game-stage-area contiene los fixed) */}
+      {over && (
+        <div className="modal-bd">
+          <div className="modal">
+            <h2>FIN DEL JUEGO</h2>
+            <div className="final-label">PUNTUACIÓN FINAL</div>
+            <div className="final">{score.toLocaleString('es-ES')}</div>
+            {!saved ? (
+              <div className="input-row">
+                <input
+                  value={name}
+                  maxLength={10}
+                  onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
+                  placeholder="TUS INICIALES"
+                />
+                <button
+                  className="btn cyan"
+                  onClick={() => {
+                    onSaveScore({
+                      game: 'tetris',
+                      score: gsRef.current.score,
+                      name,
+                      at: Date.now(),
+                    })
+                    setSaved(true)
+                  }}
+                >
+                  GUARDAR PUNTUACIÓN
+                </button>
+              </div>
+            ) : (
+              <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
+            )}
+            <div className="actions">
+              <button className="btn" onClick={restartGame}>
+                JUGAR DE NUEVO
+              </button>
+              <button className="btn cyan" onClick={() => navigate({ name: 'games' })}>
+                VOLVER AL VAULT
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
