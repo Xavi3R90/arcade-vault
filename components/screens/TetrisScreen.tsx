@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Route, SavedScore, User } from '@/lib/types'
+import TouchControls from '@/components/TouchControls'
+import TouchToggle from '@/components/TouchToggle'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -402,87 +404,74 @@ export default function TetrisScreen({ navigate, user, onSaveScore }: Props) {
 
   return (
     <div className="av-player fade-in">
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-          gap: 24,
-          padding: '32px 16px',
-        }}
-      >
-        {/* Board canvas — portrait 1:2 */}
+      <div className="tetris-layout">
+        {/* Stage: board canvas (portrait 1:2) + controles táctiles */}
         <div
-          style={{
-            position: 'relative',
-            aspectRatio: '1 / 2',
-            maxHeight: 600,
-            height: '80vh',
-            flexShrink: 0,
-          }}
+          className="game-stage"
+          style={
+            {
+              '--stage-ar': 0.5,
+              '--stage-max-w': '300px',
+            } as React.CSSProperties
+          }
         >
-          <canvas
-            ref={boardRef}
-            width={300}
-            height={600}
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'block',
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: '#050510',
-            }}
-          />
-
-          {/* Pause overlay */}
-          {paused && !over && (
-            <div
+          <div className="game-canvas" style={{ aspectRatio: '1 / 2' }}>
+            <canvas
+              ref={boardRef}
+              width={300}
+              height={600}
               style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'rgba(0,0,0,0.7)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                width: '100%',
+                height: '100%',
+                display: 'block',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: '#050510',
               }}
-            >
-              <div style={{ textAlign: 'center' }}>
-                <div className="pixel neon-cyan" style={{ fontSize: 20 }}>
-                  EN PAUSA
-                </div>
-                <div
-                  className="mono"
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--ink-dim)',
-                    marginTop: 10,
-                    letterSpacing: '0.16em',
-                  }}
-                >
-                  PULSA REANUDAR PARA CONTINUAR
+            />
+
+            {/* Pause overlay */}
+            {paused && !over && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(0,0,0,0.7)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div style={{ textAlign: 'center' }}>
+                  <div className="pixel neon-cyan" style={{ fontSize: 20 }}>
+                    EN PAUSA
+                  </div>
+                  <div
+                    className="mono"
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--ink-dim)',
+                      marginTop: 10,
+                      letterSpacing: '0.16em',
+                    }}
+                  >
+                    PULSA REANUDAR PARA CONTINUAR
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Game over modal */}
-          {over && (
-            <div className="modal-bd">
-              <div className="modal">
-                <h2>FIN DEL JUEGO</h2>
-                <div className="final-label">PUNTUACIÓN FINAL</div>
-                <div className="final">{gsRef.current.score.toLocaleString('es-ES')}</div>
-                {!saved ? (
-                  <div className="input-row">
-                    <input
-                      value={name}
-                      maxLength={10}
-                      onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
-                      placeholder="TUS INICIALES"
-                    />
-                    <button
-                      className="btn cyan"
-                      onClick={() => {
+            {/* Game over modal */}
+            {over && (
+              <div className="modal-bd">
+                <div className="modal">
+                  <h2>FIN DEL JUEGO</h2>
+                  <div className="final-label">PUNTUACIÓN FINAL</div>
+                  <div className="final">{gsRef.current.score.toLocaleString('es-ES')}</div>
+                  {!saved ? (
+                    <form
+                      className="input-row"
+                      onSubmit={(e) => {
+                        e.preventDefault()
                         onSaveScore({
                           game: 'tetris',
                           score: gsRef.current.score,
@@ -492,35 +481,41 @@ export default function TetrisScreen({ navigate, user, onSaveScore }: Props) {
                         setSaved(true)
                       }}
                     >
-                      GUARDAR PUNTUACIÓN
+                      <input
+                        value={name}
+                        maxLength={10}
+                        onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
+                        placeholder="TUS INICIALES"
+                        autoCapitalize="characters"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        enterKeyHint="done"
+                      />
+                      <button type="submit" className="btn cyan">
+                        GUARDAR PUNTUACIÓN
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
+                  )}
+                  <div className="actions">
+                    <button className="btn" onClick={restartGame}>
+                      JUGAR DE NUEVO
+                    </button>
+                    <button className="btn cyan" onClick={() => navigate({ name: 'games' })}>
+                      VOLVER AL VAULT
                     </button>
                   </div>
-                ) : (
-                  <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
-                )}
-                <div className="actions">
-                  <button className="btn" onClick={restartGame}>
-                    JUGAR DE NUEVO
-                  </button>
-                  <button className="btn cyan" onClick={() => navigate({ name: 'games' })}>
-                    VOLVER AL VAULT
-                  </button>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+          <TouchControls game="tetris" color="cyan" onPause={togglePause} disabled={over} />
         </div>
 
         {/* Side HUD */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 20,
-            paddingTop: 8,
-            minWidth: 128,
-          }}
-        >
+        <div className="tetris-side">
           <div className="hud-stat">
             <div className="l">Puntuación</div>
             <div className="v">{score.toLocaleString('es-ES')}</div>
@@ -534,7 +529,7 @@ export default function TetrisScreen({ navigate, user, onSaveScore }: Props) {
             <div className="v">{String(level).padStart(2, '0')}</div>
           </div>
 
-          <div>
+          <div className="tetris-next">
             <div
               style={{
                 fontSize: 10,
@@ -559,7 +554,8 @@ export default function TetrisScreen({ navigate, user, onSaveScore }: Props) {
             />
           </div>
 
-          <div className="hud-actions" style={{ flexDirection: 'column' }}>
+          <div className="hud-actions tetris-actions">
+            <TouchToggle />
             <button className={`btn ${paused ? 'cyan' : 'yellow'}`} onClick={togglePause}>
               {paused ? 'REANUDAR' : 'PAUSA'}
             </button>

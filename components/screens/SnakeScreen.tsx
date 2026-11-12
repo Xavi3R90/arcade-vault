@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { Route, User, SavedScore } from '@/lib/types'
 import { DEFAULT_SKIN, type GamePalette, type SkinId } from '@/lib/skins'
 import { snakeSkins } from '@/lib/skins/snake'
+import TouchControls from '@/components/TouchControls'
+import TouchToggle from '@/components/TouchToggle'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const W = 800
@@ -247,6 +249,13 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
     draw()
   }
 
+  function togglePause() {
+    if (overRef.current) return
+    const next = !pausedRef.current
+    pausedRef.current = next
+    setPaused(next)
+  }
+
   function restartGame() {
     const snake = mkSnake()
     snakeRef.current = snake
@@ -340,15 +349,8 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
           </div>
         </div>
         <div className="hud-actions">
-          <button
-            className="btn yellow"
-            onClick={() => {
-              if (overRef.current) return
-              const next = !pausedRef.current
-              pausedRef.current = next
-              setPaused(next)
-            }}
-          >
+          <TouchToggle />
+          <button className="btn yellow" onClick={togglePause}>
             {paused ? 'REANUDAR' : 'PAUSA'}
           </button>
           <button className="btn ghost" onClick={() => navigate({ name: 'detalle', id: 'snake' })}>
@@ -358,20 +360,13 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
       </div>
 
       <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: 800,
-          margin: '0 auto',
-          aspectRatio: '800 / 600',
-        }}
+        className="game-stage"
+        style={{ '--stage-ar': 800 / 600, '--stage-max-w': '800px' } as React.CSSProperties}
       >
-        <canvas
-          ref={canvasRef}
-          width={800}
-          height={600}
-          style={{ width: '100%', height: '100%', display: 'block' }}
-        />
+        <div className="game-canvas" style={{ aspectRatio: '800 / 600' }}>
+          <canvas ref={canvasRef} width={800} height={600} />
+        </div>
+        <TouchControls game="snake" color="green" onPause={togglePause} disabled={over} />
       </div>
 
       {over && (
@@ -397,23 +392,29 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
               {score.toLocaleString('es-ES')}
             </div>
             {!saved ? (
-              <div className="input-row">
+              <form
+                className="input-row"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  onSaveScore({ game: 'snake', score, name, at: Date.now() })
+                  setSaved(true)
+                }}
+              >
                 <input
                   value={name}
                   maxLength={10}
                   onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
                   placeholder="TUS INICIALES"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="done"
                 />
-                <button
-                  className="btn yellow"
-                  onClick={() => {
-                    onSaveScore({ game: 'snake', score, name, at: Date.now() })
-                    setSaved(true)
-                  }}
-                >
+                <button type="submit" className="btn yellow">
                   GUARDAR PUNTUACIÓN
                 </button>
-              </div>
+              </form>
             ) : (
               <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
             )}

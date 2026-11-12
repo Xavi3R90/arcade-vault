@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Route, User, SavedScore } from '@/lib/types'
 import { DEFAULT_SKIN, type GamePalette, type SkinId } from '@/lib/skins'
 import { asteroidsSkins } from '@/lib/skins/asteroids'
+import TouchControls from '@/components/TouchControls'
+import TouchToggle from '@/components/TouchToggle'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const W = 800
@@ -650,6 +652,7 @@ export default function AsteroidsScreen({
           )}
         </div>
         <div className="hud-actions">
+          <TouchToggle />
           <button className="btn yellow" onClick={togglePause}>
             {paused ? 'REANUDAR' : 'PAUSA'}
           </button>
@@ -664,56 +667,49 @@ export default function AsteroidsScreen({
 
       {/* Canvas responsivo */}
       <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: 800,
-          margin: '0 auto',
-          aspectRatio: '800 / 600',
-        }}
+        className="game-stage"
+        style={{ '--stage-ar': 800 / 600, '--stage-max-w': '800px' } as React.CSSProperties}
       >
-        <canvas
-          ref={canvasRef}
-          width={800}
-          height={600}
-          style={{ width: '100%', height: '100%', display: 'block' }}
-        />
-        {paused && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: ex(p, 'pauseOverlay'),
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <div style={{ textAlign: 'center' }}>
-              <div
-                className="pixel neon-yellow"
-                style={{
-                  fontSize: 22,
-                  color: ex(p, 'pauseTitle'),
-                  textShadow: ex(p, 'pauseTitleShadow'),
-                }}
-              >
-                EN PAUSA
-              </div>
-              <div
-                className="mono"
-                style={{
-                  fontSize: 11,
-                  color: ex(p, 'pauseText'),
-                  marginTop: 10,
-                  letterSpacing: '0.16em',
-                }}
-              >
-                PULSA REANUDAR PARA CONTINUAR
+        <div className="game-canvas" style={{ aspectRatio: '800 / 600' }}>
+          <canvas ref={canvasRef} width={800} height={600} />
+          {paused && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: ex(p, 'pauseOverlay'),
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <div style={{ textAlign: 'center' }}>
+                <div
+                  className="pixel neon-yellow"
+                  style={{
+                    fontSize: 22,
+                    color: ex(p, 'pauseTitle'),
+                    textShadow: ex(p, 'pauseTitleShadow'),
+                  }}
+                >
+                  EN PAUSA
+                </div>
+                <div
+                  className="mono"
+                  style={{
+                    fontSize: 11,
+                    color: ex(p, 'pauseText'),
+                    marginTop: 10,
+                    letterSpacing: '0.16em',
+                  }}
+                >
+                  PULSA REANUDAR PARA CONTINUAR
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+        <TouchControls game="asteroids" color="yellow" onPause={togglePause} disabled={over} />
       </div>
 
       {/* Modal de game over */}
@@ -740,23 +736,29 @@ export default function AsteroidsScreen({
               {score.toLocaleString('es-ES')}
             </div>
             {!saved ? (
-              <div className="input-row">
+              <form
+                className="input-row"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  onSaveScore({ game: 'asteroids', score, name, at: Date.now() })
+                  setSaved(true)
+                }}
+              >
                 <input
                   value={name}
                   maxLength={10}
                   onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
                   placeholder="TUS INICIALES"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="done"
                 />
-                <button
-                  className="btn yellow"
-                  onClick={() => {
-                    onSaveScore({ game: 'asteroids', score, name, at: Date.now() })
-                    setSaved(true)
-                  }}
-                >
+                <button type="submit" className="btn yellow">
                   GUARDAR PUNTUACIÓN
                 </button>
-              </div>
+              </form>
             ) : (
               <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
             )}

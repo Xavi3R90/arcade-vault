@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useSyncExternalStore } from 'react'
-import type { Route, User, SavedScore, Game } from '@/lib/types'
+import type { Route, RouteName, User, SavedScore, Game } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
 import { readSkin, serverSkin, subscribeSkin, writeSkin, type SkinId } from '@/lib/skins'
 import Nav from '@/components/Nav'
@@ -16,6 +16,8 @@ import AsteroidsScreen from '@/components/screens/AsteroidsScreen'
 import TetrisScreen from '@/components/screens/TetrisScreen'
 import ArkanoidScreen from '@/components/screens/ArkanoidScreen'
 import SnakeScreen from '@/components/screens/SnakeScreen'
+
+const GAME_ROUTES: ReadonlySet<RouteName> = new Set(['asteroids', 'tetris', 'arkanoid', 'snake'])
 
 export default function Home() {
   const [route, setRoute] = useState<Route>({ name: 'home' })
@@ -80,6 +82,9 @@ export default function Home() {
     }
   }
 
+  // Rutas con pantalla de juego jugable: bloquean pull-to-refresh/overscroll (SPEC 10)
+  const inGame = GAME_ROUTES.has(route.name)
+
   let screen: React.ReactNode = null
   if (route.name === 'home') {
     screen = <HomeScreen games={games} navigate={navigate} />
@@ -125,7 +130,7 @@ export default function Home() {
       <div className="av-noise" />
       {/* Replicates #root { position: relative; z-index: 2 } from the original template
           so all app content renders above av-bg (z-index:0) and av-noise (z-index:1) */}
-      <div id="root" data-skin={skin}>
+      <div id="root" data-skin={skin} className={inGame ? 'in-game' : undefined}>
         <Nav
           route={route}
           navigate={navigate}
