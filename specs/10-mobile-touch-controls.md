@@ -1,6 +1,6 @@
 # SPEC 10 — Controles táctiles y layout móvil para los juegos
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** SPEC 05, SPEC 07, SPEC 08, SPEC 09
 > **Date:** 2026-11-11
 > **Objetivo:** Hacer jugables los 4 juegos actuales en móviles táctiles en vertical con un layout común: canvas arriba, gamepad virtual (cruceta + botones A/B) abajo y pie con PAUSA, selector de skin y SALIR.
