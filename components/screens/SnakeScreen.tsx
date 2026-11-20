@@ -100,6 +100,96 @@ function fillRoundRect(
   ctx.fill()
 }
 
+// ── Caché de render (patrón de SPEC 11) ──────────────────────────────────────
+// Lo que no cambia entre ticks (fondo y rejilla, scanlines) y cada variante
+// visual (cabeza, cuerpo, fruta) se dibuja una vez por skin en canvas offscreen.
+// El glow (shadowBlur) de Neón queda "horneado" en los sprites: se paga una vez
+// por skin y no por segmento en cada tick. draw() solo compone con drawImage().
+type RenderSprite = { canvas: HTMLCanvasElement; pad: number }
+interface SnakeRenderCache {
+  background: HTMLCanvasElement // 800×600: fondo + rejilla
+  scanlines: HTMLCanvasElement | null // 800×600, solo si palette.scanlines
+  head: RenderSprite // segmento 0
+  body: RenderSprite // resto de segmentos
+  fruit: RenderSprite // fruta dibujada (skins sin sprite de frutas)
+}
+
+function createLayer(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  return [canvas, canvas.getContext('2d')!]
+}
+
+/** Margen del sprite: ≥ 2 × glow para que el halo de Neón no se recorte. */
+const spritePad = (pal: GamePalette) => Math.ceil(pal.glow * 2) + 2
+
+/** Segmento de serpiente con su glow; el contenido empieza en (pad, pad). */
+function segmentSprite(pal: GamePalette, color: string, radius: number): RenderSprite {
+  const pad = spritePad(pal)
+  const [canvas, ctx] = createLayer(CELL - 2 + 2 * pad, CELL - 2 + 2 * pad)
+  ctx.fillStyle = color
+  ctx.shadowBlur = pal.glow
+  ctx.shadowColor = color
+  fillRoundRect(ctx, pad, pad, CELL - 2, CELL - 2, radius)
+  return { canvas, pad }
+}
+
+/** Fruta dibujada con `danger` y su glow; la celda empieza en (pad, pad). */
+function fruitSprite(pal: GamePalette): RenderSprite {
+  const pad = spritePad(pal)
+  const [canvas, ctx] = createLayer(CELL + 2 * pad, CELL + 2 * pad)
+  ctx.fillStyle = pal.danger
+  ctx.shadowBlur = pal.glow
+  ctx.shadowColor = pal.danger
+  if (pal.scanlines) {
+    // Retro: fruta como bloque de píxeles
+    ctx.fillRect(pad + 4, pad + 4, CELL - 8, CELL - 8)
+  } else {
+    ctx.beginPath()
+    ctx.arc(pad + CELL / 2, pad + CELL / 2, CELL / 2 - 2, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  return { canvas, pad }
+}
+
+/** Construye la caché de un skin. Llamar solo en cliente (usa document). */
+function buildSnakeCache(pal: GamePalette): SnakeRenderCache {
+  const [background, bg] = createLayer(W, H)
+  bg.fillStyle = pal.bg
+  bg.fillRect(0, 0, W, H)
+  bg.strokeStyle = pal.grid
+  bg.lineWidth = 0.5
+  for (let c = 0; c <= COLS; c++) {
+    bg.beginPath()
+    bg.moveTo(c * CELL, 0)
+    bg.lineTo(c * CELL, H)
+    bg.stroke()
+  }
+  for (let r = 0; r <= ROWS; r++) {
+    bg.beginPath()
+    bg.moveTo(0, r * CELL)
+    bg.lineTo(W, r * CELL)
+    bg.stroke()
+  }
+
+  let scanlines: HTMLCanvasElement | null = null
+  if (pal.scanlines) {
+    const [layer, sl] = createLayer(W, H)
+    sl.fillStyle = ex(pal, 'scanline')
+    for (let y = 0; y < H; y += 3) sl.fillRect(0, y, W, 1)
+    scanlines = layer
+  }
+
+  return {
+    background,
+    scanlines,
+    head: segmentSprite(pal, pal.fg, 5),
+    body: segmentSprite(pal, pal.accent, 3),
+    fruit: fruitSprite(pal),
+  }
+}
+
 // ── Component ──────────────────────────────────────────────────────────────
 interface Props {
   navigate: (r: Route) => void
@@ -123,6 +213,8 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
   const pausedRef = useRef(false)
   // Paleta leída en draw(): cambiar de skin no reinicia la partida.
   const paletteRef = useRef<GamePalette>(snakeSkins[skin])
+  // Caché de render del skin activo; se regenera en el efecto de `skin`.
+  const cacheRef = useRef<SnakeRenderCache | null>(null)
   const p = snakeSkins[skin]
 
   const [score, setScore] = useState(0)
@@ -136,28 +228,18 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
   function draw() {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext('2d')
+    // El fondo cubre todo el canvas: contexto opaco, el navegador compone más rápido.
+    const ctx = canvas.getContext('2d', { alpha: false })
     if (!ctx) return
 
     const pal = paletteRef.current
-
-    ctx.fillStyle = pal.bg
-    ctx.fillRect(0, 0, W, H)
-
-    ctx.strokeStyle = pal.grid
-    ctx.lineWidth = 0.5
-    for (let c = 0; c <= COLS; c++) {
-      ctx.beginPath()
-      ctx.moveTo(c * CELL, 0)
-      ctx.lineTo(c * CELL, H)
-      ctx.stroke()
+    let cache = cacheRef.current
+    if (!cache) {
+      cache = buildSnakeCache(pal)
+      cacheRef.current = cache
     }
-    for (let r = 0; r <= ROWS; r++) {
-      ctx.beginPath()
-      ctx.moveTo(0, r * CELL)
-      ctx.lineTo(W, r * CELL)
-      ctx.stroke()
-    }
+
+    ctx.drawImage(cache.background, 0, 0)
 
     const fruit = fruitRef.current
     const fx = fruit.col * CELL
@@ -166,34 +248,18 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
       const { x, y, w, h } = fruit.sprite
       ctx.drawImage(imgRef.current, x, y, w, h, fx + 1, fy + 1, CELL - 2, CELL - 2)
     } else {
-      ctx.fillStyle = pal.danger
-      ctx.shadowBlur = pal.glow
-      ctx.shadowColor = pal.danger
-      if (pal.scanlines) {
-        // Retro: fruta como bloque de píxeles
-        ctx.fillRect(fx + 4, fy + 4, CELL - 8, CELL - 8)
-      } else {
-        ctx.beginPath()
-        ctx.arc(fx + CELL / 2, fy + CELL / 2, CELL / 2 - 2, 0, Math.PI * 2)
-        ctx.fill()
-      }
-      ctx.shadowBlur = 0
+      ctx.drawImage(cache.fruit.canvas, fx - cache.fruit.pad, fy - cache.fruit.pad)
     }
 
+    // Coordenadas enteras (celda × 20 + 1 − pad): sin remuestreo bilineal.
     const snake = snakeRef.current
     for (let i = 0; i < snake.length; i++) {
-      const { col, row } = snake[i]
-      ctx.fillStyle = i === 0 ? pal.fg : pal.accent
-      ctx.shadowBlur = pal.glow
-      ctx.shadowColor = i === 0 ? pal.fg : pal.accent
-      fillRoundRect(ctx, col * CELL + 1, row * CELL + 1, CELL - 2, CELL - 2, i === 0 ? 5 : 3)
+      const seg = snake[i]
+      const s = i === 0 ? cache.head : cache.body
+      ctx.drawImage(s.canvas, seg.col * CELL + 1 - s.pad, seg.row * CELL + 1 - s.pad)
     }
-    ctx.shadowBlur = 0
 
-    if (pal.scanlines) {
-      ctx.fillStyle = ex(pal, 'scanline')
-      for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1)
-    }
+    if (cache.scanlines) ctx.drawImage(cache.scanlines, 0, 0)
   }
 
   function scheduleInterval(ms: number) {
@@ -220,26 +286,28 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
     nc = ((nc % COLS) + COLS) % COLS
     nr = ((nr % ROWS) + ROWS) % ROWS
 
-    // Self collision — skip tail since it will vacate
-    if (snake.slice(0, -1).some((s) => s.col === nc && s.row === nr)) {
-      overRef.current = true
-      if (intervalRef.current) clearInterval(intervalRef.current)
-      draw()
-      setOver(true)
-      return
+    // Self collision — skip tail since it will vacate (bucle sin copiar el array)
+    for (let i = 0; i < snake.length - 1; i++) {
+      if (snake[i].col === nc && snake[i].row === nr) {
+        overRef.current = true
+        if (intervalRef.current) clearInterval(intervalRef.current)
+        draw()
+        setOver(true)
+        return
+      }
     }
 
+    // La serpiente avanza en el mismo array: sin copiarla entera en cada tick.
     const ate = nc === fruitRef.current.col && nr === fruitRef.current.row
-    const newSnake: Cell[] = [{ col: nc, row: nr }, ...snake]
-    if (!ate) newSnake.pop()
-    snakeRef.current = newSnake
+    snake.unshift({ col: nc, row: nr })
+    if (!ate) snake.pop()
 
     if (ate) {
       const ns = scoreRef.current + PTS
       scoreRef.current = ns
       setScore(ns)
-      setSnakeLen(newSnake.length)
-      fruitRef.current = mkFruit(newSnake)
+      setSnakeLen(snake.length)
+      fruitRef.current = mkFruit(snake)
 
       const newMs = Math.max(MIN_INTERVAL, intervalMsRef.current - SPEED_STEP)
       if (newMs !== intervalMsRef.current) {
@@ -249,6 +317,19 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
     }
 
     draw()
+  }
+
+  // En pausa no queda ningún temporizador vivo; al reanudar el intervalo empieza
+  // de cero con la velocidad actual. El cambio de skin repinta vía el efecto de `skin`.
+  function setPausedState(next: boolean) {
+    pausedRef.current = next
+    setPaused(next)
+    if (next) {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      intervalRef.current = null
+    } else {
+      scheduleInterval(intervalMsRef.current)
+    }
   }
 
   function restartGame() {
@@ -273,6 +354,7 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
 
   useEffect(() => {
     paletteRef.current = snakeSkins[skin]
+    cacheRef.current = buildSnakeCache(snakeSkins[skin])
     // Repinta al instante (también en pausa o game over) sin tocar el intervalo.
     draw()
   }, [skin])
@@ -290,9 +372,7 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
       if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
         e.preventDefault()
         if (overRef.current) return
-        const next = !pausedRef.current
-        pausedRef.current = next
-        setPaused(next)
+        setPausedState(!pausedRef.current)
         return
       }
       const map: Partial<Record<string, Dir>> = {
@@ -321,9 +401,7 @@ export default function SnakeScreen({ navigate, user, onSaveScore, skin = DEFAUL
 
   const togglePause = () => {
     if (overRef.current) return
-    const next = !pausedRef.current
-    pausedRef.current = next
-    setPaused(next)
+    setPausedState(!pausedRef.current)
   }
   const exit = () => navigate({ name: 'detalle', id: 'snake' })
 

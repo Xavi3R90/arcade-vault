@@ -4,7 +4,7 @@ Catálogo de los juegos realmente jugables en Arcade Vault (`play_route IS NOT N
 
 Fuente: tabla `public.games` — consulta `SELECT * FROM public.games WHERE play_route IS NOT NULL`.
 
-Última actualización: 2026-10-06.
+Última actualización: 2026-11-15.
 
 ---
 
@@ -31,6 +31,18 @@ Fuente: tabla `public.games` — consulta `SELECT * FROM public.games WHERE play
 - **Spec:** `specs/05-asteroids-game.md`
 - **Short:** Destruye rocas en el vacío del espacio.
 - **Long:** Tu nave triangular flota en gravedad cero. Dispara para dividir asteroides en fragmentos cada vez más pequeños mientras esquivas su órbita caótica. Recoge el power-up 3x para triplicar tus disparos.
+
+## FROGGER
+
+- **id / slug:** `frogger`
+- **Ruta:** `frogger`
+- **Categoría:** ARCADE
+- **Color:** green
+- **Cover CSS:** `.cover-frogger`
+- **Screen:** `components/screens/FroggerScreen.tsx` (lógica en `components/games/FroggerGame.tsx`)
+- **Spec:** `specs/game-jam/frogger/01-frogger-core.md`
+- **Short:** Cruza la carretera y el río sin convertirte en papilla.
+- **Long:** Guía a tu rana a través de una carretera repleta de coches y un río de troncos y tortugas flotantes. Llena las cinco bocas del otro lado para completar la ronda; cada nivel acelera el tráfico y acorta el tiempo. Tres vidas y mucho asfalto por delante.
 
 ## SNAKE
 
@@ -60,11 +72,12 @@ Fuente: tabla `public.games` — consulta `SELECT * FROM public.games WHERE play
 
 ## Resumen
 
-| Slug      | Título    | Categoría | Color   | Spec                 |
-| --------- | --------- | --------- | ------- | -------------------- |
-| arkanoid  | ARKANOID  | ARCADE    | magenta | 08-add-arkanoid.md   |
-| asteroids | ASTEROIDS | SHOOTER   | yellow  | 05-asteroids-game.md |
-| snake     | SNAKE     | SNAKE     | green   | 09-add-snake.md      |
-| tetris    | TETRIS    | PUZZLE    | cyan    | 07-add-tetris.md     |
+| Slug      | Título    | Categoría | Color   | Spec                                |
+| --------- | --------- | --------- | ------- | ----------------------------------- |
+| arkanoid  | ARKANOID  | ARCADE    | magenta | 08-add-arkanoid.md                  |
+| asteroids | ASTEROIDS | SHOOTER   | yellow  | 05-asteroids-game.md                |
+| frogger   | FROGGER   | ARCADE    | green   | game-jam/frogger/01-frogger-core.md |
+| snake     | SNAKE     | SNAKE     | green   | 09-add-snake.md                     |
+| tetris    | TETRIS    | PUZZLE    | cyan    | 07-add-tetris.md                    |
 
-**Total: 4 juegos implementados.**
+**Total: 5 juegos implementados.**

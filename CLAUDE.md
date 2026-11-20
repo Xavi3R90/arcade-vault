@@ -56,6 +56,7 @@ references/             # Juegos originales en HTML/JS para portar
   skills/add-game/      # Generador de specs para nuevos juegos
   skills/spec/          # Generador de specs genéricos
   skills/spec-impl/     # Implementador de specs aprobados
+  skills/spec-impl-game/ # spec-impl + skin-designer + mobile-porter (secuencial)
   skills/frontend-design/
 ```
 
@@ -83,7 +84,7 @@ CONTACT_TO_EMAIL=
 
 1. Lanzar `/add-game <slug>` para generar `specs/NN-add-<slug>.md`.
 2. Revisar y marcar el spec como `Aprobado`.
-3. Lanzar `/spec-impl NN-add-<slug>` — crea rama, implementa paso a paso.
+3. Lanzar `/spec-impl NN-add-<slug>` — crea rama, implementa paso a paso. Alternativa: `/spec-impl-game NN-add-<slug>`, que además encadena `skin-designer` y luego `mobile-porter`.
 4. Convenciones duras: canvas 800×600 lógico escalado por CSS (`aspect-ratio: 800/600`), componente `components/screens/<Slug>Screen.tsx`, cover `.cover-<slug>` en `app/globals.css`, props `{ navigate, user, onSaveScore }`, cleanup de RAF y listeners en `useEffect`, modal de game over con input (máx. 10 chars, mayúsculas).
 
 ## Hooks
@@ -113,6 +114,7 @@ Antes de escribir código Next.js, leer `node_modules/next/dist/docs/` para la A
 - `/frontend-design` — **úsalo siempre** para diseñar interfaces de usuario.
 - `/spec` — genera specs genéricos en `specs/`.
 - `/spec-impl <NN-spec>` — implementa un spec aprobado (crea rama, aplica cambios paso a paso).
+- `/spec-impl-game <NN-spec>` — igual que `/spec-impl` (reutiliza sus fases leyendo su `SKILL.md`, admite specs de `specs/game-jam/<slug>/`) y al terminar lanza, uno tras otro, los agentes `skin-designer` y `mobile-porter` para ese juego. Nunca commitea.
 - `/add-game <slug>` — genera un spec para un juego nuevo (portado desde `references/started-games/` o desde cero). No implementa; produce el `.md` listo para `/spec-impl`.
 - Agente `game-jam` — recibe un tema, inventa un juego original y escribe 3 specs completos en `specs/game-jam/<slug>/` (`01-add-<slug>.md`, `02-<slug>-levels.md`, `03-<slug>-polish.md`). No implementa.
 

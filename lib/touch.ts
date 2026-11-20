@@ -11,7 +11,7 @@ export type KeyBinding = { key: string; code: string; repeat?: boolean }
 // Botón ausente = se renderiza deshabilitado/atenuado (mismo diseño en todos los juegos)
 export type TouchMapping = Partial<Record<TouchButtonId, KeyBinding>>
 
-export type TouchGameId = 'asteroids' | 'tetris' | 'arkanoid' | 'snake'
+export type TouchGameId = 'asteroids' | 'tetris' | 'arkanoid' | 'snake' | 'frogger'
 
 // Auto-repeat (solo bindings con repeat: true)
 export const REPEAT_DELAY = 170 // ms hasta la primera repetición
@@ -35,6 +35,8 @@ export const TOUCH_MAPPINGS: Record<TouchGameId, TouchMapping> = {
   },
   arkanoid: { left: LEFT, right: RIGHT },
   snake: { up: UP, down: DOWN, left: LEFT, right: RIGHT },
+  // Un salto discreto por pulsación: sin auto-repeat (el juego ignora e.repeat).
+  frogger: { up: UP, down: DOWN, left: LEFT, right: RIGHT },
 }
 
 export function dispatchKey(type: 'keydown' | 'keyup', b: KeyBinding): void {

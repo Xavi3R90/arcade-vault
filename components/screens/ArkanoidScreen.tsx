@@ -34,6 +34,14 @@ const PAUSE_BTN_H = 40
 const PAUSE_BTN_GAP = 12
 const PAUSE_BTN_Y = 340
 const PAUSE_BTN_ROW_X = (W - (5 * PAUSE_BTN_W + 4 * PAUSE_BTN_GAP)) / 2
+const PADDLE_W = 81
+const PADDLE_H = 14
+const PADDLE_RADIUS = 4
+const BALL_SIZE = 16
+// Área pintada de cada bloque (1 px de separación por lado) y alto del brillo superior.
+const BLOCK_FILL_W = BLOCK_W - 2
+const BLOCK_FILL_H = BLOCK_H - 2
+const BLOCK_SHINE_H = 5
 
 // ── Skins ─────────────────────────────────────────────────────────────────
 const ex = (p: GamePalette, key: string) => p.extra[key] as string
@@ -48,6 +56,144 @@ const BLOCK_KEY: Record<string, string> = {
   gray: 'blockGray',
 }
 const blockColor = (p: GamePalette, family: string) => ex(p, BLOCK_KEY[family]) ?? family
+
+// ── Render cache (SPEC 11) ────────────────────────────────────────────────
+// Sprite pre-renderizado: el glow (shadowBlur) va "horneado" dentro del canvas,
+// con margen `pad` para que el halo no se recorte.
+interface Sprite {
+  canvas: HTMLCanvasElement
+  pad: number
+}
+
+interface RenderCache {
+  pal: GamePalette
+  blocks: Map<string, Sprite> // familia de color de LEVELS → bloque (relleno + glow + brillo)
+  paddle: Sprite
+  ball: Sprite
+  scanlines: HTMLCanvasElement | null // 800×600, solo si pal.scanlines
+  layer: HTMLCanvasElement // 800×600: fondo + bloques vivos; se regenera al romper un bloque
+  layerCtx: CanvasRenderingContext2D
+}
+
+function createLayer(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  return [canvas, canvas.getContext('2d') as CanvasRenderingContext2D]
+}
+
+// Margen ≥ 2 × glow para que el halo del shadowBlur quepa entero en el sprite.
+const spritePad = (p: GamePalette) => Math.max(2, Math.ceil(p.glow * 2))
+
+function buildSprite(
+  p: GamePalette,
+  w: number,
+  h: number,
+  paint: (ctx: CanvasRenderingContext2D, pad: number) => void,
+): Sprite {
+  const pad = spritePad(p)
+  const [canvas, ctx] = createLayer(w + 2 * pad, h + 2 * pad)
+  paint(ctx, pad)
+  return { canvas, pad }
+}
+
+const setGlow = (ctx: CanvasRenderingContext2D, p: GamePalette, color: string) => {
+  if (p.glow > 0) {
+    ctx.shadowBlur = p.glow
+    ctx.shadowColor = color
+  }
+}
+
+function buildRenderCache(pal: GamePalette): RenderCache {
+  const blocks = new Map<string, Sprite>()
+  for (const family of Object.keys(BLOCK_KEY)) {
+    const color = blockColor(pal, family)
+    blocks.set(
+      family,
+      buildSprite(pal, BLOCK_FILL_W, BLOCK_FILL_H, (ctx, pad) => {
+        ctx.fillStyle = color
+        setGlow(ctx, pal, color)
+        ctx.fillRect(pad, pad, BLOCK_FILL_W, BLOCK_FILL_H)
+        ctx.shadowBlur = 0
+        ctx.fillStyle = ex(pal, 'blockShine')
+        ctx.fillRect(pad, pad, BLOCK_FILL_W, BLOCK_SHINE_H)
+      }),
+    )
+  }
+
+  const paddle = buildSprite(pal, PADDLE_W, PADDLE_H, (ctx, pad) => {
+    ctx.fillStyle = pal.fg
+    setGlow(ctx, pal, pal.fg)
+    ctx.beginPath()
+    ctx.roundRect(pad, pad, PADDLE_W, PADDLE_H, PADDLE_RADIUS)
+    ctx.fill()
+  })
+
+  const ball = buildSprite(pal, BALL_SIZE, BALL_SIZE, (ctx, pad) => {
+    ctx.fillStyle = pal.accent
+    setGlow(ctx, pal, pal.accent)
+    ctx.beginPath()
+    ctx.arc(pad + BALL_SIZE / 2, pad + BALL_SIZE / 2, BALL_SIZE / 2, 0, Math.PI * 2)
+    ctx.fill()
+  })
+
+  let scanlines: HTMLCanvasElement | null = null
+  if (pal.scanlines) {
+    const [canvas, ctx] = createLayer(W, H)
+    ctx.fillStyle = pal.grid
+    for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1)
+    scanlines = canvas
+  }
+
+  const [layer, layerCtx] = createLayer(W, H)
+  return { pal, blocks, paddle, ball, scanlines, layer, layerCtx }
+}
+
+// Fondo + bloques vivos, en el mismo orden que antes: el halo de cada bloque
+// se superpone al anterior igual que con shadowBlur directo.
+function paintBlocksLayer(cache: RenderCache, blocks: Block[]) {
+  const c = cache.layerCtx
+  c.fillStyle = cache.pal.bg
+  c.fillRect(0, 0, W, H)
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i]
+    if (!b.alive) continue
+    const sp = cache.blocks.get(b.color)
+    if (sp) c.drawImage(sp.canvas, b.x + 1 - sp.pad, b.y + 1 - sp.pad)
+  }
+}
+
+// Menú de pausa: solo se pinta en el último frame antes de parar el RAF.
+function drawPauseMenu(ctx: CanvasRenderingContext2D, pal: GamePalette, currentLevel: number) {
+  ctx.fillStyle = ex(pal, 'pauseOverlay')
+  ctx.fillRect(0, 0, W, H)
+
+  ctx.fillStyle = ex(pal, 'pauseText')
+  ctx.font = 'bold 56px monospace'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('PAUSA', W / 2, 260)
+
+  ctx.font = 'bold 16px monospace'
+  ctx.fillText('Saltar al nivel:', W / 2, 310)
+
+  for (let i = 0; i < 5; i++) {
+    const bx = PAUSE_BTN_ROW_X + i * (PAUSE_BTN_W + PAUSE_BTN_GAP)
+    const isActive = i + 1 === currentLevel
+    ctx.fillStyle = isActive ? ex(pal, 'pauseBtnActive') : ex(pal, 'pauseBtn')
+    ctx.strokeStyle = ex(pal, 'pauseBtnStroke')
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.roundRect(bx, PAUSE_BTN_Y, PAUSE_BTN_W, PAUSE_BTN_H, 6)
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = isActive ? ex(pal, 'pauseBtnTextActive') : ex(pal, 'pauseBtnText')
+    ctx.font = 'bold 20px monospace'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(String(i + 1), bx + PAUSE_BTN_W / 2, PAUSE_BTN_Y + PAUSE_BTN_H / 2)
+  }
+}
 
 // ── Levels ────────────────────────────────────────────────────────────────
 interface LevelBlock {
@@ -158,8 +304,8 @@ function resetBall(gs: GS) {
 
 function gInit(): GS {
   const gs: GS = {
-    paddle: { x: 0, y: 560, w: 81, h: 14 },
-    ball: { x: 0, y: 0, w: 16, h: 16, vx: 0, vy: 0 },
+    paddle: { x: 0, y: 560, w: PADDLE_W, h: PADDLE_H },
+    ball: { x: 0, y: 0, w: BALL_SIZE, h: BALL_SIZE, vx: 0, vy: 0 },
     blocks: [],
     lives: 3,
     score: 0,
@@ -194,6 +340,14 @@ export default function ArkanoidScreen({
   const overSetRef = useRef(false)
   // Paleta leída dentro del loop RAF: cambiar de skin no reinicia la partida.
   const paletteRef = useRef<GamePalette>(arkanoidSkins[skin])
+  // Sprites y capas offscreen del skin actual (SPEC 11); se reconstruyen al cambiar de skin.
+  const cacheRef = useRef<RenderCache | null>(null)
+  // true → hay que repintar la capa fondo + bloques (bloque roto, nivel nuevo, reinicio, skin).
+  const layerDirtyRef = useRef(true)
+  // Repinta un frame sin avanzar el juego (cambio de skin o ratón con el RAF parado).
+  const redrawRef = useRef<(() => void) | null>(null)
+  // Relanza el RAF si está parado (reanudar, reiniciar), sin salto de dt.
+  const wakeRef = useRef<(() => void) | null>(null)
   const p = arkanoidSkins[skin]
 
   const [score, setScore] = useState(0)
@@ -207,13 +361,17 @@ export default function ArkanoidScreen({
 
   useEffect(() => {
     paletteRef.current = arkanoidSkins[skin]
+    // En pausa o game over el RAF está parado: repintar con el nuevo skin.
+    redrawRef.current?.()
   }, [skin])
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext('2d')
+    // alpha: false — el fondo cubre todo el canvas; el navegador compone más rápido (SPEC 11).
+    const ctx = canvas.getContext('2d', { alpha: false })
     if (!ctx) return
+    const c: CanvasRenderingContext2D = ctx
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') e.preventDefault()
@@ -224,6 +382,7 @@ export default function ArkanoidScreen({
       ) {
         pausedRef.current = !pausedRef.current
         setPaused(pausedRef.current)
+        wake()
       }
     }
     const onKeyUp = (e: KeyboardEvent) => {
@@ -237,6 +396,8 @@ export default function ArkanoidScreen({
       const mx = (e.clientX - rect.left) * (W / rect.width)
       const gs = gsRef.current
       gs.paddle.x = Math.max(0, Math.min(W - gs.paddle.w, mx - gs.paddle.w / 2))
+      // Con el RAF parado (pausa, game over) la pala se sigue viendo moverse, como antes.
+      if (!rafRef.current) draw()
     }
     canvas.addEventListener('mousemove', onMouseMove)
 
@@ -255,16 +416,55 @@ export default function ArkanoidScreen({
         ) {
           const gs = gsRef.current
           loadLevelInto(gs, i + 1)
+          layerDirtyRef.current = true
           pausedRef.current = false
           setPaused(false)
           setLevel(gs.currentLevel)
+          wake()
           return
         }
       }
     }
     canvas.addEventListener('click', onCanvasClick)
 
+    function draw() {
+      const gs = gsRef.current
+      const pal = paletteRef.current
+      let cache = cacheRef.current
+      if (!cache || cache.pal !== pal) {
+        cache = buildRenderCache(pal)
+        cacheRef.current = cache
+        layerDirtyRef.current = true
+      }
+      if (layerDirtyRef.current) {
+        paintBlocksLayer(cache, gs.blocks)
+        layerDirtyRef.current = false
+      }
+
+      // Fondo + bloques (capa cacheada), pala, bola y scanlines: todo con drawImage.
+      c.drawImage(cache.layer, 0, 0)
+      const pd = cache.paddle
+      c.drawImage(pd.canvas, Math.round(gs.paddle.x) - pd.pad, Math.round(gs.paddle.y) - pd.pad)
+      const bl = cache.ball
+      c.drawImage(bl.canvas, Math.round(gs.ball.x) - bl.pad, Math.round(gs.ball.y) - bl.pad)
+      if (cache.scanlines) c.drawImage(cache.scanlines, 0, 0)
+
+      if (pausedRef.current) drawPauseMenu(c, pal, gs.currentLevel)
+    }
+
+    // Pide frame solo si el RAF está parado. Tras una pausa, el primer dt es 0 (sin saltos).
+    function wake() {
+      if (rafRef.current) return
+      lastTimeRef.current = null
+      rafRef.current = requestAnimationFrame(loop)
+    }
+    wakeRef.current = wake
+    redrawRef.current = () => {
+      if (!rafRef.current) draw()
+    }
+
     const loop = (ts: number) => {
+      rafRef.current = 0
       const gs = gsRef.current
       const dt =
         lastTimeRef.current === null ? 0 : Math.min((ts - lastTimeRef.current) / 1000, 0.05)
@@ -302,7 +502,8 @@ export default function ArkanoidScreen({
           gs.ball.vy = -Math.abs(gs.ball.vy)
         }
 
-        for (const block of gs.blocks) {
+        for (let i = 0; i < gs.blocks.length; i++) {
+          const block = gs.blocks[i]
           if (!block.alive) continue
           if (
             gs.ball.x < block.x + block.w &&
@@ -311,6 +512,7 @@ export default function ArkanoidScreen({
             gs.ball.y + gs.ball.h > block.y
           ) {
             block.alive = false
+            layerDirtyRef.current = true
             gs.score += 10
             gs.ball.vy = -gs.ball.vy
             setScore(gs.score)
@@ -343,87 +545,18 @@ export default function ArkanoidScreen({
         }
       }
 
-      // Draw
-      const pal = paletteRef.current
-      ctx.fillStyle = pal.bg
-      ctx.fillRect(0, 0, W, H)
-
-      for (const block of gs.blocks) {
-        if (!block.alive) continue
-        const color = blockColor(pal, block.color)
-        ctx.fillStyle = color
-        if (pal.glow > 0) {
-          ctx.shadowBlur = pal.glow
-          ctx.shadowColor = color
-        }
-        ctx.fillRect(block.x + 1, block.y + 1, block.w - 2, block.h - 2)
-        ctx.shadowBlur = 0
-        ctx.fillStyle = ex(pal, 'blockShine')
-        ctx.fillRect(block.x + 1, block.y + 1, block.w - 2, 5)
-      }
-
-      ctx.fillStyle = pal.fg
-      if (pal.glow > 0) {
-        ctx.shadowBlur = pal.glow
-        ctx.shadowColor = pal.fg
-      }
-      ctx.beginPath()
-      ctx.roundRect(gs.paddle.x, gs.paddle.y, gs.paddle.w, gs.paddle.h, 4)
-      ctx.fill()
-
-      ctx.fillStyle = pal.accent
-      if (pal.glow > 0) {
-        ctx.shadowBlur = pal.glow
-        ctx.shadowColor = pal.accent
-      }
-      ctx.beginPath()
-      ctx.arc(gs.ball.x + gs.ball.w / 2, gs.ball.y + gs.ball.h / 2, gs.ball.w / 2, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.shadowBlur = 0
-
-      if (pal.scanlines) {
-        ctx.fillStyle = pal.grid
-        for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1)
-      }
-
-      if (pausedRef.current) {
-        ctx.fillStyle = ex(pal, 'pauseOverlay')
-        ctx.fillRect(0, 0, W, H)
-
-        ctx.fillStyle = ex(pal, 'pauseText')
-        ctx.font = 'bold 56px monospace'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText('PAUSA', W / 2, 260)
-
-        ctx.font = 'bold 16px monospace'
-        ctx.fillText('Saltar al nivel:', W / 2, 310)
-
-        for (let i = 0; i < 5; i++) {
-          const bx = PAUSE_BTN_ROW_X + i * (PAUSE_BTN_W + PAUSE_BTN_GAP)
-          const isActive = i + 1 === gs.currentLevel
-          ctx.fillStyle = isActive ? ex(pal, 'pauseBtnActive') : ex(pal, 'pauseBtn')
-          ctx.strokeStyle = ex(pal, 'pauseBtnStroke')
-          ctx.lineWidth = 2
-          ctx.beginPath()
-          ctx.roundRect(bx, PAUSE_BTN_Y, PAUSE_BTN_W, PAUSE_BTN_H, 6)
-          ctx.fill()
-          ctx.stroke()
-          ctx.fillStyle = isActive ? ex(pal, 'pauseBtnTextActive') : ex(pal, 'pauseBtnText')
-          ctx.font = 'bold 20px monospace'
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-          ctx.fillText(String(i + 1), bx + PAUSE_BTN_W / 2, PAUSE_BTN_Y + PAUSE_BTN_H / 2)
-        }
-      }
-
-      rafRef.current = requestAnimationFrame(loop)
+      draw()
+      // En pausa y en game over el RAF se detiene tras este último frame (SPEC 11).
+      if (!pausedRef.current && gs.state === 'playing') rafRef.current = requestAnimationFrame(loop)
     }
 
     rafRef.current = requestAnimationFrame(loop)
 
     return () => {
       cancelAnimationFrame(rafRef.current)
+      rafRef.current = 0
+      wakeRef.current = null
+      redrawRef.current = null
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
       canvas.removeEventListener('mousemove', onMouseMove)
@@ -434,6 +567,8 @@ export default function ArkanoidScreen({
   const togglePause = useCallback(() => {
     pausedRef.current = !pausedRef.current
     setPaused((p) => !p)
+    // Al pausar, el frame en curso pinta el menú y para; al reanudar, se relanza el RAF.
+    wakeRef.current?.()
   }, [])
 
   const restartGame = useCallback(() => {
@@ -448,6 +583,8 @@ export default function ArkanoidScreen({
     setPaused(false)
     setOver(null)
     setSaved(false)
+    layerDirtyRef.current = true
+    wakeRef.current?.()
   }, [])
 
   const exit = () => navigate({ name: 'detalle', id: 'arkanoid' })
