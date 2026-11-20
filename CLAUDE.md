@@ -6,19 +6,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Arcade Vault es una plataforma de juegos arcade online donde los jugadores compiten por la puntuación más alta. Usa **Spec Driven Design** con los skills `/spec`, `/spec-impl` y `/add-game` (basados en `Klerith/fernando-skills`). Los specs viven en `specs/NN-*.md` y se implementan tras aprobarse manualmente.
+Arcade Vault es una plataforma de juegos arcade online donde los jugadores compiten por la puntuación más alta. Usa **Spec Driven Design** con los skills `/spec`, `/spec-impl`, `/spec-impl-game` y `/add-game` (basados en `Klerith/fernando-skills`). Los specs viven en `specs/NN-*.md` (y `specs/game-jam/<slug>/`) y se implementan tras aprobarse manualmente.
 
-Juegos integrados actualmente: **Asteroids, Tetris, Arkanoid, Snake**.
+Juegos integrados actualmente: **Asteroids, Tetris, Arkanoid, Snake, Frogger** (detalle en `references/implemented-games.md`).
 
 ## Commands
 
 ```bash
-npm run dev      # start dev server
-npm run build    # production build
-npm run start    # serve production build
-npm run lint     # run ESLint
-npm run format   # Prettier --write .
+npm run dev               # start dev server
+npm run build             # production build
+npm run start             # serve production build
+npm run lint              # run ESLint
+npm run format            # Prettier --write .
+npm run perf -- <slug>    # mide FPS en móvil emulado (390×844, CPU 10×) — SPEC 11
 ```
+
+`npm run perf` (`scripts/perf/fps.mjs`, Playwright) se ejecuta siempre contra producción (`npm run build && npm run start`). Umbral: ≥ 55 FPS medios y ≤ 5 % de frames lentos por skin; opciones `--skins=`, `--duration=`, `--cpu=`, `--runs=`, `--screenshots=`.
 
 ## Stack
 
@@ -29,40 +32,62 @@ npm run format   # Prettier --write .
 - **Supabase** — `@supabase/ssr` + `@supabase/supabase-js` para persistencia de `games` y `scores`
 - **Resend** — envío de emails desde `app/api/contact/route.ts`
 - **Prettier** — con `prettier-plugin-tailwindcss` (ordena clases Tailwind)
+- **Playwright** (dev) — usado por `npm run perf`
+- **MCP** (`.mcp.json`) — servidores `playwright` (screenshots en `.playwright-mcp-screenshots/`) y `supabase`
 
 ## Estructura del proyecto
 
 ```
 app/
-  page.tsx              # Shell cliente: routing por estado + carga de games desde Supabase
+  page.tsx              # Shell cliente: routing por estado, GAME_ROUTES, carga de games desde Supabase, skin y usuario
   layout.tsx            # Root layout
-  globals.css           # Theme Tailwind v4 + covers CSS por juego (.cover-<slug>)
+  globals.css           # Theme Tailwind v4 + covers CSS por juego (.cover-<slug>) + layout móvil (.game-mobile)
   api/contact/route.ts  # POST → Resend (requiere RESEND_API_KEY y CONTACT_TO_EMAIL)
+middleware.ts           # Refresco de sesión Supabase (createServerClient + auth.getUser)
 components/
   Nav.tsx, GameCard.tsx
+  TouchControls.tsx     # Gamepad virtual (cruceta + A/B) para móvil — SPEC 10
   screens/              # Una pantalla por ruta: HomeScreen, Library, GameDetail,
                         # GamePlayer, Auth, HallOfFame, AboutScreen, y la pantalla
-                        # de cada juego (AsteroidsScreen, TetrisScreen, …)
+                        # de cada juego (AsteroidsScreen, TetrisScreen, ArkanoidScreen,
+                        # SnakeScreen, FroggerScreen)
+  games/                # Lógica/render de juego separada de la screen (FroggerGame.tsx, froggerSprites.ts)
 lib/
   types.ts              # RouteName, Route, Game, ScoreRow, SavedScore, User
+  skins.ts              # SkinId (classic | neon | retro), lectura/escritura del skin, GamePalette
+  skins/<slug>.ts       # Paletas por juego para los 3 skins
+  touch.ts              # TouchGameId, TOUCH_MAPPINGS (botón → tecla), dispatchKey
+  useTouchMobile.ts     # useIsTouchMobile / useIsLandscape (media queries)
+  userStore.ts          # Usuario en localStorage vía useSyncExternalStore
   supabase/client.ts    # createBrowserClient — uso cliente
   supabase/server.ts    # createServerClient — uso Server Components / Route Handlers
-specs/                  # Specs 01–09 (MVP UI, Home, About, Supabase, juegos, …)
-  game-jam/<slug>/      # 3 specs por juego generados por el agente game-jam (01 MVP, 02 niveles, 03 pulido)
-references/             # Juegos originales en HTML/JS para portar
+scripts/perf/fps.mjs    # Medidor de FPS (npm run perf)
+specs/                  # Specs 01–11 (MVP UI, Home, About, Supabase, juegos, móvil, rendimiento)
+  game-jam/<slug>/      # Specs generados por el agente game-jam (frogger, puas-express)
+references/
+  implemented-games.md     # Catálogo de juegos jugables
+  game-with-themes.md      # Registro de skins por juego (skin-designer)
+  game-mobile-support.md   # Registro de soporte móvil (mobile-porter)
+  performance-findings.md  # Mediciones FPS y hallazgos (game-performance-booster)
+  game-suggestions-todo.md # To Do de juegos sugeridos (game-planner)
+  started-games/           # Juegos originales en HTML/JS para portar
+  templates/, source-assets/ # Plantillas UI originales y assets
 .claude/
   settings.json         # Hook PostToolUse → format.ps1
   hooks/format.ps1      # Trim + Prettier + ESLint --fix tras cada Write/Edit
-  skills/add-game/      # Generador de specs para nuevos juegos
-  skills/spec/          # Generador de specs genéricos
-  skills/spec-impl/     # Implementador de specs aprobados
-  skills/spec-impl-game/ # spec-impl + skin-designer + mobile-porter (secuencial)
-  skills/frontend-design/
+  agents/               # Definiciones de subagentes (ver sección Agentes)
+  agent-memory/game-planner/ # Memoria persistente del agente game-planner
+  skills/               # add-game, spec, spec-impl, spec-impl-game, frontend-design
+.agents/skills/         # Copias instaladas de skills externos (skills-lock.json)
 ```
 
 ## Routing (cliente)
 
-El shell en `app/page.tsx` **no usa file-based routing** para las sub-pantallas: mantiene `useState<Route>` y renderiza la pantalla correspondiente según `route.name` (`'home' | 'games' | 'detalle' | 'player' | 'auth' | 'salon' | 'about' | '<slug-de-juego>'`). Al añadir un juego hay que: ampliar el union `RouteName` en `lib/types.ts`, importar la screen en `app/page.tsx` y añadir su `else if` en el switch.
+El shell en `app/page.tsx` **no usa file-based routing** para las sub-pantallas: mantiene `useState<Route>` y renderiza la pantalla correspondiente según `route.name` (`'home' | 'games' | 'detalle' | 'player' | 'auth' | 'salon' | 'about' | '<slug-de-juego>'`). Al añadir un juego hay que:
+
+1. Ampliar el union `RouteName` en `lib/types.ts`.
+2. Importar la screen en `app/page.tsx`, añadir su `else if` y su slug a `GAME_ROUTES` (pone `data-game-route`, que oculta el Nav en móvil).
+3. Añadir el slug a `TouchGameId` y su mapeo a `TOUCH_MAPPINGS` en `lib/touch.ts`.
 
 ## Supabase
 
@@ -76,16 +101,21 @@ El shell en `app/page.tsx` **no usa file-based routing** para las sub-pantallas:
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_DB_PASSWORD=
 RESEND_API_KEY=
 CONTACT_TO_EMAIL=
 ```
 
+`.env.template` solo incluye las de Supabase; `RESEND_API_KEY` y `CONTACT_TO_EMAIL` hay que añadirlas a mano.
+
 ## Patrón para añadir juegos
 
+0. (Opcional) Elegir qué juego con el agente `game-planner`, o inventar uno con el agente `game-jam`.
 1. Lanzar `/add-game <slug>` para generar `specs/NN-add-<slug>.md`.
 2. Revisar y marcar el spec como `Aprobado`.
 3. Lanzar `/spec-impl NN-add-<slug>` — crea rama, implementa paso a paso. Alternativa: `/spec-impl-game NN-add-<slug>`, que además encadena `skin-designer` y luego `mobile-porter`.
-4. Convenciones duras: canvas 800×600 lógico escalado por CSS (`aspect-ratio: 800/600`), componente `components/screens/<Slug>Screen.tsx`, cover `.cover-<slug>` en `app/globals.css`, props `{ navigate, user, onSaveScore }`, cleanup de RAF y listeners en `useEffect`, modal de game over con input (máx. 10 chars, mayúsculas).
+4. (Opcional) Pasar `game-performance-booster` para validar FPS en móvil.
+5. Convenciones duras: canvas 800×600 lógico escalado por CSS (`aspect-ratio: 800/600`), componente `components/screens/<Slug>Screen.tsx` (lógica pesada opcionalmente en `components/games/`), cover `.cover-<slug>` en `app/globals.css`, props `{ navigate, user, onSaveScore }`, cleanup de RAF y listeners en `useEffect`, modal de game over con input (máx. 10 chars, mayúsculas), 3 skins en `lib/skins/<slug>.ts` (classic/neon/retro), layout móvil SPEC 10 (`.game-mobile` + `TouchControls`) y objetivo de rendimiento SPEC 11.
 
 ## Hooks
 
@@ -114,10 +144,21 @@ Antes de escribir código Next.js, leer `node_modules/next/dist/docs/` para la A
 - `/frontend-design` — **úsalo siempre** para diseñar interfaces de usuario.
 - `/spec` — genera specs genéricos en `specs/`.
 - `/spec-impl <NN-spec>` — implementa un spec aprobado (crea rama, aplica cambios paso a paso).
-- `/spec-impl-game <NN-spec>` — igual que `/spec-impl` (reutiliza sus fases leyendo su `SKILL.md`, admite specs de `specs/game-jam/<slug>/`) y al terminar lanza, uno tras otro, los agentes `skin-designer` y `mobile-porter` para ese juego. Nunca commitea.
-- `/add-game <slug>` — genera un spec para un juego nuevo (portado desde `references/started-games/` o desde cero). No implementa; produce el `.md` listo para `/spec-impl`.
-- Agente `game-jam` — recibe un tema, inventa un juego original y escribe 3 specs completos en `specs/game-jam/<slug>/` (`01-add-<slug>.md`, `02-<slug>-levels.md`, `03-<slug>-polish.md`). No implementa.
+- `/spec-impl-game <NN-spec>` — `/spec-impl` + `skin-designer` + `mobile-porter` en secuencia; admite specs de `specs/game-jam/<slug>/`. Nunca commitea.
+- `/add-game <slug>` — genera el spec de un juego nuevo (portado desde `references/started-games/` o desde cero). No implementa.
 
-# Revisar juegos implementados
+## Agentes
 
-- Cuando necesites revisar que juegos están implementados y como implementar uno nuevo revisa en esta lista los juegos implementados: `references/implemented-games.md`
+Definidos en `.claude/agents/`. Para detalles (flujo, reglas, herramientas) leer el archivo de cada uno. Los agentes por juego actúan sobre **un único juego** por ejecución.
+
+| Agente                     | Qué hace                                                                                            | Definición                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `game-planner`             | Propone qué juego añadir; recuerda sus sugerencias y mantiene `references/game-suggestions-todo.md` | `.claude/agents/game-planner.md`             |
+| `game-jam`                 | Inventa un juego original a partir de un tema y escribe 3 specs en `specs/game-jam/<slug>/`         | `.claude/agents/game-jam.md`                 |
+| `skin-designer`            | Aplica los skins Clásico/Neón/Retro y actualiza `references/game-with-themes.md`                    | `.claude/agents/skin-designer.md`            |
+| `mobile-porter`            | Porta el juego al layout móvil de SPEC 10 y actualiza `references/game-mobile-support.md`           | `.claude/agents/mobile-porter.md`            |
+| `game-performance-booster` | Optimiza FPS según SPEC 11 sin cambiar el aspecto y actualiza `references/performance-findings.md`  | `.claude/agents/game-performance-booster.md` |
+
+## Revisar juegos implementados
+
+- Cuando necesites revisar qué juegos están implementados y cómo implementar uno nuevo, consulta `references/implemented-games.md`.
