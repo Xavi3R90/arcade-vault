@@ -1021,6 +1021,94 @@ a {
   filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.5));
 }
 
+/* Frogger · CLÁSICO: franjas de zonas (metas, río, mediana, carretera, salida),
+   tronco y tortugas en el río, coches en la carretera y la rana en la mediana. */
+.cover-frogger {
+  background: linear-gradient(
+    180deg,
+    #2e7d32 0 12%,
+    #06183a 12% 50%,
+    #14532d 50% 60%,
+    #000000 60% 90%,
+    #14532d 90% 100%
+  );
+}
+/* Tronco + 2 tortugas (río) y 2 coches (carretera) */
+.cover-frogger::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(#b5763a, #b5763a) 12% 22% / 34% 9% no-repeat,
+    radial-gradient(circle, #43a047 0 60%, transparent 62%) 66% 38% / 8% 11% no-repeat,
+    radial-gradient(circle, #43a047 0 60%, transparent 62%) 76% 38% / 8% 11% no-repeat,
+    linear-gradient(#e53935, #e53935) 20% 68% / 11% 7% no-repeat,
+    linear-gradient(#ab47bc, #ab47bc) 72% 82% / 11% 7% no-repeat;
+}
+/* Rana en la mediana */
+.cover-frogger::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  width: 18px;
+  height: 15px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #39ff14;
+  box-shadow: 0 0 8px rgba(57, 255, 20, 0.6);
+}
+
+/* Frogger · skin NEÓN: zonas casi negras, mediana violeta, glow saturado */
+[data-skin='neon'] .cover-frogger {
+  background: linear-gradient(
+    180deg,
+    #0a2416 0 12%,
+    #020c1f 12% 50%,
+    #3a2070 50% 60%,
+    #000000 60% 90%,
+    #3a2070 90% 100%
+  );
+}
+[data-skin='neon'] .cover-frogger::before {
+  background:
+    linear-gradient(#ff8c00, #ff8c00) 12% 22% / 34% 9% no-repeat,
+    radial-gradient(circle, #0099ff 0 60%, transparent 62%) 66% 38% / 8% 11% no-repeat,
+    radial-gradient(circle, #0099ff 0 60%, transparent 62%) 76% 38% / 8% 11% no-repeat,
+    linear-gradient(#ff006e, #ff006e) 20% 68% / 11% 7% no-repeat,
+    linear-gradient(#ff8c00, #ff8c00) 72% 82% / 11% 7% no-repeat;
+  filter: drop-shadow(0 0 6px rgba(255, 0, 110, 0.7));
+}
+[data-skin='neon'] .cover-frogger::after {
+  background: #00ff88;
+  box-shadow:
+    0 0 8px rgba(0, 255, 136, 1),
+    0 0 20px rgba(0, 255, 136, 0.6);
+}
+
+/* Frogger · skin RETRO: ámbar CRT de 4 tonos, sin glow, scanlines, rana cuadrada */
+[data-skin='retro'] .cover-frogger {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #c07800 0 12%, #4a2a00 12% 50%, #120a00 50% 100%);
+}
+[data-skin='retro'] .cover-frogger::before {
+  background:
+    linear-gradient(#c07800, #c07800) 12% 22% / 34% 9% no-repeat,
+    linear-gradient(#c07800, #c07800) 66% 38% / 8% 11% no-repeat,
+    linear-gradient(#c07800, #c07800) 76% 38% / 8% 11% no-repeat,
+    linear-gradient(#c07800, #c07800) 20% 68% / 11% 7% no-repeat,
+    linear-gradient(#c07800, #c07800) 72% 82% / 11% 7% no-repeat,
+    repeating-linear-gradient(90deg, #4a2a00 0 12px, transparent 12px 22px) 0 75% / 100% 2px
+      no-repeat;
+  filter: none;
+}
+[data-skin='retro'] .cover-frogger::after {
+  background: #ffcc66;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .cover-duelo {
   background: #0a0a18;
 }
@@ -3413,4 +3501,32 @@ a {
     height: min(100cqh, 200cqw);
     aspect-ratio: 1 / 2;
   }
+}
+
+/* SPEC 10 — Frogger en móvil: el marco CRT se reduce a un bisel fino para que la
+   pantalla 4:3 ocupe todo el .game-stage; la franja inferior del CRT se oculta. */
+@media (pointer: coarse) and (max-width: 900px) {
+  .game-mobile .frogger-crt {
+    padding: 0;
+    border-radius: 12px;
+    box-shadow:
+      0 0 0 3px #1b1b22,
+      0 0 0 4px #2a2a35,
+      0 12px 32px -12px rgba(0, 245, 255, 0.35);
+  }
+  .game-mobile .frogger-crt .crt-bottom {
+    display: none;
+  }
+}
+
+/* SPEC 11 — Rendimiento de Frogger. Solo afecta a la ruta frogger.
+   .av-bg es hermano de #root (no descendiente), así que se alcanza con :has(). */
+body:has(#root[data-game-route='frogger']) .av-bg::before {
+  /* la rejilla deja de animar background-position (repintado a pantalla completa) */
+  animation-play-state: paused;
+}
+#root[data-game-route='frogger'] .crt-screen::after {
+  /* multiply con negro a alpha 0.18 = normal con negro a alpha 0.18 (dst × 0.82):
+     mismo aspecto sin recomponer la capa en cada frame del canvas */
+  mix-blend-mode: normal;
 }

@@ -17,9 +17,10 @@ import AsteroidsScreen from '@/components/screens/AsteroidsScreen'
 import TetrisScreen from '@/components/screens/TetrisScreen'
 import ArkanoidScreen from '@/components/screens/ArkanoidScreen'
 import SnakeScreen from '@/components/screens/SnakeScreen'
+import FroggerScreen from '@/components/screens/FroggerScreen'
 
 // Rutas de juego jugables: en móvil táctil ocultan el Nav (SPEC 10).
-const GAME_ROUTES: readonly string[] = ['asteroids', 'tetris', 'arkanoid', 'snake']
+const GAME_ROUTES: readonly string[] = ['asteroids', 'tetris', 'arkanoid', 'snake', 'frogger']
 
 export default function Home() {
   const [route, setRoute] = useState<Route>({ name: 'home' })
@@ -105,6 +106,10 @@ export default function Home() {
     screen = (
       <SnakeScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} skin={skin} />
     )
+  } else if (route.name === 'frogger') {
+    screen = (
+      <FroggerScreen navigate={navigate} user={user} onSaveScore={handleSaveScore} skin={skin} />
+    )
   }
 
   return (
@@ -116,7 +121,7 @@ export default function Home() {
       <div
         id="root"
         data-skin={skin}
-        data-game-route={GAME_ROUTES.includes(route.name) ? '' : undefined}
+        data-game-route={GAME_ROUTES.includes(route.name) ? route.name : undefined}
       >
         <Nav
           route={route}

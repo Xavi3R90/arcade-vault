@@ -46,6 +46,103 @@ const clearGlow = (ctx: CanvasRenderingContext2D) => {
   ctx.shadowBlur = 0
 }
 
+// ── Caché de render (SPEC 11) ──────────────────────────────────────────────
+// Glow de las balas "horneado" una vez por skin en un canvas offscreen que
+// contiene SOLO el halo: la forma se dibuja desplazada fuera del canvas y la
+// sombra vuelve a su sitio con shadowOffsetX. En cada frame se pinta el halo con
+// drawImage (sin rotar, en coordenadas enteras) y la bala encima en vectorial.
+// Asteroides y nave NO usan sprites: rotan, y un drawImage rotado (bilineal o
+// nearest) mide más caro que su shadowBlur con CPU 10× (ver performance-findings).
+const GLOW_OFF = 10000
+const glowPad = (p: GamePalette) => Math.ceil(p.glow * 2) // margen ≥ 2 × glow
+
+interface GlowSprite {
+  canvas: HTMLCanvasElement
+  half: number // el centro de la forma está en (half, half)
+}
+
+function makeGlowSprite(
+  extent: number,
+  p: GamePalette,
+  color: string,
+  paint: (ctx: CanvasRenderingContext2D) => void,
+): GlowSprite {
+  const half = Math.ceil(extent + glowPad(p))
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = half * 2
+  const c = canvas.getContext('2d')!
+  c.translate(half - GLOW_OFF, half)
+  c.shadowOffsetX = GLOW_OFF
+  c.shadowBlur = p.glow
+  c.shadowColor = color
+  paint(c)
+  return { canvas, half }
+}
+
+// Casco de la nave (constante de módulo).
+const traceShip = (ctx: CanvasRenderingContext2D) => {
+  ctx.beginPath()
+  ctx.moveTo(20, 0)
+  ctx.lineTo(-12, -9)
+  ctx.lineTo(-7, 0)
+  ctx.lineTo(-12, 9)
+  ctx.closePath()
+}
+
+interface SkinCache {
+  scanlines: HTMLCanvasElement | null // 800×600, solo si palette.scanlines
+  particleColors: string[] // rgba(...) por alpha 0.00–1.00 (101 entradas)
+  bulletGlow: GlowSprite | null
+}
+const skinCaches = new WeakMap<GamePalette, SkinCache>()
+
+function getSkinCache(p: GamePalette): SkinCache {
+  let cache = skinCaches.get(p)
+  if (cache) return cache
+  let scanlines: HTMLCanvasElement | null = null
+  if (p.scanlines) {
+    scanlines = document.createElement('canvas')
+    scanlines.width = W
+    scanlines.height = H
+    const c = scanlines.getContext('2d')!
+    c.fillStyle = p.grid
+    for (let y = 0; y < H; y += 3) c.fillRect(0, y, W, 1)
+  }
+  const particleColors: string[] = []
+  for (let i = 0; i <= 100; i++) {
+    particleColors.push(`rgba(${ex(p, 'particle')},${(i / 100).toFixed(2)})`)
+  }
+  const bulletColor = ex(p, 'bullet')
+  cache = {
+    scanlines,
+    particleColors,
+    bulletGlow:
+      p.glow > 0
+        ? makeGlowSprite(2, p, bulletColor, (c) => {
+            c.fillStyle = bulletColor
+            c.beginPath()
+            c.arc(0, 0, 2, 0, Math.PI * 2)
+            c.fill()
+          })
+        : null,
+  }
+  skinCaches.set(p, cache)
+  return cache
+}
+
+/** Elimina in situ las entidades muertas (sin crear arrays nuevos por frame). */
+function compact<T extends { dead: boolean }>(arr: T[]) {
+  let j = 0
+  for (let i = 0; i < arr.length; i++) {
+    const e = arr[i]
+    if (!e.dead) arr[j++] = e
+  }
+  arr.length = j
+}
+
+const PREVENT_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'Space']
+const newAsteroidsBuf: Asteroid[] = []
+
 // ── Classes ────────────────────────────────────────────────────────────────
 class Bullet {
   x: number
@@ -71,14 +168,14 @@ class Bullet {
     if (this.ttl <= 0) this.dead = true
   }
 
-  draw(ctx: CanvasRenderingContext2D, p: GamePalette) {
-    const color = ex(p, 'bullet')
-    ctx.fillStyle = color
-    setGlow(ctx, p, color)
+  draw(ctx: CanvasRenderingContext2D, p: GamePalette, glow: GlowSprite | null) {
+    if (glow) {
+      ctx.drawImage(glow.canvas, Math.round(this.x) - glow.half, Math.round(this.y) - glow.half)
+    }
+    ctx.fillStyle = ex(p, 'bullet')
     ctx.beginPath()
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2)
     ctx.fill()
-    clearGlow(ctx)
   }
 }
 
@@ -128,21 +225,25 @@ class Asteroid {
     ]
   }
 
+  private trace(ctx: CanvasRenderingContext2D) {
+    ctx.beginPath()
+    ctx.moveTo(this.verts[0][0], this.verts[0][1])
+    for (let i = 1; i < this.verts.length; i++) ctx.lineTo(this.verts[i][0], this.verts[i][1])
+    ctx.closePath()
+  }
+
+  // Vectorial con shadowBlur a propósito: rota, y el sprite rotado mide más caro.
   draw(ctx: CanvasRenderingContext2D, p: GamePalette) {
     const color = ex(p, 'asteroid')
     ctx.save()
     ctx.translate(this.x, this.y)
     ctx.rotate(this.rot)
-    ctx.strokeStyle = color
     setGlow(ctx, p, color)
+    ctx.strokeStyle = color
     ctx.lineWidth = 1.5
     ctx.lineJoin = 'round'
-    ctx.beginPath()
-    ctx.moveTo(this.verts[0][0], this.verts[0][1])
-    for (let i = 1; i < this.verts.length; i++) ctx.lineTo(this.verts[i][0], this.verts[i][1])
-    ctx.closePath()
+    this.trace(ctx)
     ctx.stroke()
-    clearGlow(ctx)
     ctx.restore()
   }
 }
@@ -257,6 +358,7 @@ class Ship {
     return [new Bullet(ox, oy, this.angle)]
   }
 
+  // Entidad única que rota: se queda vectorial con su shadowBlur (ver Asteroid.draw).
   draw(ctx: CanvasRenderingContext2D, p: GamePalette) {
     if (this.dead) return
     if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0) return
@@ -267,13 +369,9 @@ class Ship {
     setGlow(ctx, p, p.fg)
     ctx.lineWidth = 1.5
     ctx.lineJoin = 'round'
-    ctx.beginPath()
-    ctx.moveTo(20, 0)
-    ctx.lineTo(-12, -9)
-    ctx.lineTo(-7, 0)
-    ctx.lineTo(-12, 9)
-    ctx.closePath()
+    traceShip(ctx)
     ctx.stroke()
+    // Llama del propulsor: longitud aleatoria por frame, solo al acelerar → sigue vectorial.
     if (this.thrusting && Math.random() > 0.35) {
       ctx.beginPath()
       ctx.moveTo(-8, -4)
@@ -315,9 +413,10 @@ class Particle {
     if (this.ttl <= 0) this.dead = true
   }
 
-  draw(ctx: CanvasRenderingContext2D, p: GamePalette) {
+  draw(ctx: CanvasRenderingContext2D, colors: string[]) {
     const alpha = this.ttl / this.life
-    ctx.strokeStyle = `rgba(${ex(p, 'particle')},${alpha.toFixed(2)})`
+    // Mismo rgba(...,alpha.toFixed(2)) que antes, sacado de una tabla precalculada por skin.
+    ctx.strokeStyle = colors[Math.min(100, Math.max(0, Math.round(alpha * 100)))]
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(this.x, this.y)
@@ -436,18 +535,29 @@ export default function AsteroidsScreen({
   const [name, setName] = useState(user?.name ?? 'INVITADO')
   const [saved, setSaved] = useState(false)
 
+  // Último valor enviado a React por cada stat del HUD: solo se llama a setState
+  // cuando cambia (antes se llamaba en todos los frames). `triple` es el texto
+  // mostrado (toFixed(1)), así el power-up re-renderiza a ~10 Hz y no a 60 Hz.
+  const hudRef = useRef({ score: 0, lives: 3, level: 1, triple: '' })
+  // Bucle RAF detenido en pausa/game over (SPEC 11): `startRef` lo reanuda y
+  // `redrawRef` repinta un frame suelto (p. ej. al cambiar de skin en pausa).
+  const startRef = useRef<(() => void) | null>(null)
+  const redrawRef = useRef<(() => void) | null>(null)
+
   useEffect(() => {
     paletteRef.current = asteroidsSkins[skin]
+    redrawRef.current?.()
   }, [skin])
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext('2d')
+    // alpha: false — el fondo opaco cubre todo el canvas en cada frame.
+    const ctx = canvas.getContext('2d', { alpha: false })
     if (!ctx) return
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'Space'].includes(e.code)) e.preventDefault()
+      if (PREVENT_KEYS.includes(e.code)) e.preventDefault()
       if (!keysRef.current[e.code]) justPressedRef.current[e.code] = true
       keysRef.current[e.code] = true
     }
@@ -463,42 +573,83 @@ export default function AsteroidsScreen({
       return val
     }
 
+    const syncHud = (gs: GS) => {
+      const h = hudRef.current
+      if (h.score !== gs.score) {
+        h.score = gs.score
+        setScore(gs.score)
+      }
+      if (h.lives !== gs.lives) {
+        h.lives = gs.lives
+        setLives(gs.lives)
+      }
+      if (h.level !== gs.level) {
+        h.level = gs.level
+        setLevel(gs.level)
+      }
+      const t = Math.max(0, gs.ship.tripleShot)
+      const triple = t > 0 ? t.toFixed(1) : ''
+      if (h.triple !== triple) {
+        h.triple = triple
+        setTripleShot(t)
+      }
+    }
+
+    const draw = () => {
+      const gs = gsRef.current
+      const pal = paletteRef.current
+      const cache = getSkinCache(pal)
+      ctx.fillStyle = pal.bg
+      ctx.fillRect(0, 0, W, H)
+      for (const pt of gs.particles) pt.draw(ctx, cache.particleColors)
+      for (const a of gs.asteroids) a.draw(ctx, pal)
+      for (const pu of gs.powerUps) pu.draw(ctx, pal)
+      for (const b of gs.bullets) b.draw(ctx, pal, cache.bulletGlow)
+      gs.ship.draw(ctx, pal)
+      // Scanlines: una capa offscreen 800×600 por skin, un único drawImage.
+      if (cache.scanlines) ctx.drawImage(cache.scanlines, 0, 0)
+    }
+
+    let running = false
+
     const loop = (ts: number) => {
       const gs = gsRef.current
       const dt =
-        lastTimeRef.current === null ? 0 : Math.min((ts - lastTimeRef.current) / 1000, 0.05)
+        lastTimeRef.current === null
+          ? 0
+          : Math.max(0, Math.min((ts - lastTimeRef.current) / 1000, 0.05))
       lastTimeRef.current = ts
 
       if (!pausedRef.current) {
         if (gs.state === 'gameover') {
-          gs.particles.forEach((p) => p.update(dt))
-          gs.particles = gs.particles.filter((p) => !p.dead)
+          for (const pt of gs.particles) pt.update(dt)
+          compact(gs.particles)
           if (!overSetRef.current) {
             overSetRef.current = true
             setOver(true)
           }
         } else if (gs.state === 'dead') {
           gs.deadTimer -= dt
-          gs.particles.forEach((p) => p.update(dt))
-          gs.particles = gs.particles.filter((p) => !p.dead)
-          gs.asteroids.forEach((a) => a.update(dt))
+          for (const pt of gs.particles) pt.update(dt)
+          compact(gs.particles)
+          for (const a of gs.asteroids) a.update(dt)
           if (gs.deadTimer <= 0) {
             gs.state = 'playing'
             gs.ship.reset()
           }
-          setLives(gs.lives)
+          syncHud(gs)
         } else {
           if (pressed('Space')) gs.bullets.push(...gs.ship.tryShoot())
 
           gs.ship.update(dt, keysRef.current)
-          gs.bullets.forEach((b) => b.update(dt))
-          gs.asteroids.forEach((a) => a.update(dt))
-          gs.particles.forEach((p) => p.update(dt))
-          gs.powerUps.forEach((p) => p.update(dt))
+          for (const b of gs.bullets) b.update(dt)
+          for (const a of gs.asteroids) a.update(dt)
+          for (const pt of gs.particles) pt.update(dt)
+          for (const pu of gs.powerUps) pu.update(dt)
 
-          gs.bullets = gs.bullets.filter((b) => !b.dead)
-          gs.particles = gs.particles.filter((p) => !p.dead)
-          gs.powerUps = gs.powerUps.filter((p) => !p.dead)
+          compact(gs.bullets)
+          compact(gs.particles)
+          compact(gs.powerUps)
 
           for (const p of gs.powerUps) {
             if (!p.dead && gDist(gs.ship, p) < gs.ship.radius + p.radius) {
@@ -507,7 +658,8 @@ export default function AsteroidsScreen({
             }
           }
 
-          const newAsteroids: Asteroid[] = []
+          const newAsteroids = newAsteroidsBuf
+          newAsteroids.length = 0
           for (const b of gs.bullets) {
             for (const a of gs.asteroids) {
               if (!a.dead && !b.dead && gDist(b, a) < a.radius) {
@@ -526,8 +678,10 @@ export default function AsteroidsScreen({
               }
             }
           }
-          gs.asteroids = gs.asteroids.filter((a) => !a.dead).concat(newAsteroids)
-          gs.bullets = gs.bullets.filter((b) => !b.dead)
+          compact(gs.asteroids)
+          for (const a of newAsteroids) gs.asteroids.push(a)
+          newAsteroids.length = 0
+          compact(gs.bullets)
 
           if (gs.ship.invincible <= 0) {
             for (const a of gs.asteroids) {
@@ -540,34 +694,42 @@ export default function AsteroidsScreen({
 
           if (gs.asteroids.length === 0) gNextLevel(gs)
 
-          setScore(gs.score)
-          setLives(gs.lives)
-          setLevel(gs.level)
-          setTripleShot(Math.max(0, gs.ship.tripleShot))
+          syncHud(gs)
         }
       }
 
-      // Draw always (even when paused)
-      const pal = paletteRef.current
-      ctx.fillStyle = pal.bg
-      ctx.fillRect(0, 0, W, H)
-      gs.particles.forEach((p) => p.draw(ctx, pal))
-      gs.asteroids.forEach((a) => a.draw(ctx, pal))
-      gs.powerUps.forEach((p) => p.draw(ctx, pal))
-      gs.bullets.forEach((b) => b.draw(ctx, pal))
-      gs.ship.draw(ctx, pal)
-      if (pal.scanlines) {
-        ctx.fillStyle = pal.grid
-        for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1)
-      }
+      draw()
 
+      // En pausa, o en game over cuando la explosión ya terminó, el RAF se
+      // detiene tras este último draw(): no se redibuja un canvas estático.
+      const finished = gs.state === 'gameover' && overSetRef.current && gs.particles.length === 0
+      if (pausedRef.current || finished) {
+        running = false
+        rafRef.current = 0
+        return
+      }
       rafRef.current = requestAnimationFrame(loop)
     }
 
-    rafRef.current = requestAnimationFrame(loop)
+    const start = () => {
+      if (running) return
+      running = true
+      // Sin salto de dt: el tiempo en pausa no cuenta como tiempo de juego.
+      lastTimeRef.current = performance.now()
+      rafRef.current = requestAnimationFrame(loop)
+    }
+    startRef.current = start
+    redrawRef.current = () => {
+      if (!running) draw()
+    }
+
+    start()
 
     return () => {
       cancelAnimationFrame(rafRef.current)
+      running = false
+      startRef.current = null
+      redrawRef.current = null
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
     }
@@ -575,6 +737,7 @@ export default function AsteroidsScreen({
 
   const togglePause = useCallback(() => {
     pausedRef.current = !pausedRef.current
+    if (!pausedRef.current) startRef.current?.()
     setPaused((p) => !p)
   }, [])
 
@@ -585,6 +748,7 @@ export default function AsteroidsScreen({
     justPressedRef.current = {}
     pausedRef.current = false
     overSetRef.current = false
+    hudRef.current = { score: 0, lives: 3, level: 1, triple: '' }
     setScore(0)
     setLives(3)
     setLevel(1)
@@ -592,6 +756,7 @@ export default function AsteroidsScreen({
     setPaused(false)
     setOver(false)
     setSaved(false)
+    startRef.current?.()
   }, [])
 
   const exit = () => navigate({ name: 'detalle', id: 'asteroids' })

@@ -12,6 +12,7 @@ Registro de qué juegos de Arcade Vault se juegan en móviles táctiles en verti
 | --------- | --------- | ------- | --------------- | -------------------------- | ------------------ | -------------------------------------------------------------------------------- | ---------- |
 | ARKANOID  | arkanoid  | ok      | ok              | ok                         | ok                 | — · — · ArrowLeft · ArrowRight · — · —                                           | 2026-11-11 |
 | ASTEROIDS | asteroids | ok      | ok              | ok                         | ok                 | ArrowUp · — · ArrowLeft · ArrowRight · Space · —                                 | 2026-11-11 |
+| FROGGER   | frogger   | ok      | ok              | ok                         | ok                 | ArrowUp · ArrowDown · ArrowLeft · ArrowRight · — · —                             | 2026-11-15 |
 | SNAKE     | snake     | ok      | ok              | ok                         | ok                 | ArrowUp · ArrowDown · ArrowLeft · ArrowRight · — · —                             | 2026-11-11 |
 | TETRIS    | tetris    | ok      | ok              | ok                         | ok                 | ArrowUp · ArrowDown (rep) · ArrowLeft (rep) · ArrowRight (rep) · ArrowUp · Space | 2026-11-11 |
 
@@ -52,3 +53,4 @@ Fuente de verdad: `specs/10-mobile-touch-controls.md`.
 -->
 
 - 2026-11-11 — arkanoid, asteroids, snake, tetris: portados en SPEC 10 (`specs/10-mobile-touch-controls.md`).
+- 2026-11-15 — frogger: gamepad/vertical/horizontal/escritorio ok · mapeo ArrowUp · ArrowDown · ArrowLeft · ArrowRight · — · — (sin repeat: un salto por pulsación) · FroggerGame escucha en `document` y `dispatchKey` emite en `window`, así que `FroggerScreen` reenvía a `document` solo los eventos sintéticos (`!isTrusted`, sin burbujeo) mientras `isTouchMobile`; marco CRT reducido a bisel fino (`.game-mobile .frogger-crt`) y `.crt-bottom` oculto en móvil.

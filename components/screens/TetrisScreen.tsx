@@ -87,6 +87,7 @@ const PIECES: (number[][] | null)[] = [
 ]
 
 const LINE_SCORES = [0, 100, 300, 500, 800]
+const BOARD_BG = '#050510'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -231,23 +232,34 @@ function drawBlock(
   ctx.globalAlpha = 1
 }
 
-function drawScene(ctx: CanvasRenderingContext2D, gs: GS) {
-  ctx.clearRect(0, 0, COLS * BLOCK, ROWS * BLOCK)
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)'
-  ctx.lineWidth = 0.5
+// Fondo del tablero (color del canvas + rejilla) cacheado offscreen: es estático, así que
+// se pinta una vez y cada frame lo copia con un único drawImage (SPEC 11, capa background).
+function buildBackground(): HTMLCanvasElement {
+  const bg = document.createElement('canvas')
+  bg.width = COLS * BLOCK
+  bg.height = ROWS * BLOCK
+  const b = bg.getContext('2d')!
+  b.fillStyle = BOARD_BG
+  b.fillRect(0, 0, bg.width, bg.height)
+  b.strokeStyle = 'rgba(255,255,255,0.05)'
+  b.lineWidth = 0.5
   for (let c = 1; c < COLS; c++) {
-    ctx.beginPath()
-    ctx.moveTo(c * BLOCK, 0)
-    ctx.lineTo(c * BLOCK, ROWS * BLOCK)
-    ctx.stroke()
+    b.beginPath()
+    b.moveTo(c * BLOCK, 0)
+    b.lineTo(c * BLOCK, ROWS * BLOCK)
+    b.stroke()
   }
   for (let r = 1; r < ROWS; r++) {
-    ctx.beginPath()
-    ctx.moveTo(0, r * BLOCK)
-    ctx.lineTo(COLS * BLOCK, r * BLOCK)
-    ctx.stroke()
+    b.beginPath()
+    b.moveTo(0, r * BLOCK)
+    b.lineTo(COLS * BLOCK, r * BLOCK)
+    b.stroke()
   }
+  return bg
+}
+
+function drawScene(ctx: CanvasRenderingContext2D, gs: GS, bg: HTMLCanvasElement) {
+  ctx.drawImage(bg, 0, 0)
 
   for (let r = 0; r < ROWS; r++)
     for (let c = 0; c < COLS; c++) drawBlock(ctx, c, r, gs.board[r][c], BLOCK)
@@ -291,6 +303,8 @@ export default function TetrisScreen({ navigate, user, onSaveScore, skin = DEFAU
   const rafRef = useRef<number>(0)
   const pausedRef = useRef(false)
   const overSetRef = useRef(false)
+  // Arranca el RAF si está parado (al reanudar o reiniciar). Lo asigna el efecto del loop.
+  const startLoopRef = useRef<() => void>(() => {})
 
   const [score, setScore] = useState(0)
   const [lines, setLines] = useState(0)
@@ -305,16 +319,25 @@ export default function TetrisScreen({ navigate, user, onSaveScore, skin = DEFAU
     const board = boardRef.current
     const nextCanvas = nextRef.current
     if (!board || !nextCanvas) return
-    const ctx = board.getContext('2d')!
+    // Opaco: la capa de fondo cubre todo el tablero (SPEC 11).
+    const ctx = board.getContext('2d', { alpha: false })!
     const nextCtx = nextCanvas.getContext('2d')!
+    const bg = buildBackground()
 
     let lScore = 0
     let lLines = 0
     let lLevel = 1
+    let lNext: Piece | null = null
 
     const loop = (ts: number) => {
       const g = gsRef.current
-      const dt = Math.min(ts - g.lastTime, 50)
+      // Pausa / game over: último frame y se detiene el RAF (se reanuda con startLoopRef).
+      if (pausedRef.current || g.over) {
+        drawScene(ctx, g, bg)
+        rafRef.current = 0
+        return
+      }
+      const dt = Math.max(0, Math.min(ts - g.lastTime, 50))
       g.lastTime = ts
 
       if (!pausedRef.current && !g.over) {
@@ -344,12 +367,24 @@ export default function TetrisScreen({ navigate, user, onSaveScore, skin = DEFAU
           lLevel = g.level
           setLevel(g.level)
         }
-        drawPreview(nextCtx, g.next)
+        // La vista previa solo cambia al generar una pieza nueva.
+        if (g.next !== lNext) {
+          lNext = g.next
+          drawPreview(nextCtx, g.next)
+        }
       }
 
-      drawScene(ctx, g)
+      drawScene(ctx, g, bg)
       rafRef.current = requestAnimationFrame(loop)
     }
+
+    const startLoop = () => {
+      if (rafRef.current) return
+      // Evita que el primer dt tras la pausa acumule el tiempo pausado.
+      gsRef.current.lastTime = performance.now()
+      rafRef.current = requestAnimationFrame(loop)
+    }
+    startLoopRef.current = startLoop
 
     rafRef.current = requestAnimationFrame(loop)
 
@@ -360,6 +395,7 @@ export default function TetrisScreen({ navigate, user, onSaveScore, skin = DEFAU
         if (g.over) return
         pausedRef.current = !pausedRef.current
         setPaused(pausedRef.current)
+        if (!pausedRef.current) startLoop()
         return
       }
 
@@ -408,6 +444,7 @@ export default function TetrisScreen({ navigate, user, onSaveScore, skin = DEFAU
     window.addEventListener('keydown', onKey)
     return () => {
       cancelAnimationFrame(rafRef.current)
+      rafRef.current = 0
       window.removeEventListener('keydown', onKey)
     }
   }, [])
@@ -422,12 +459,14 @@ export default function TetrisScreen({ navigate, user, onSaveScore, skin = DEFAU
     setPaused(false)
     setOver(false)
     setSaved(false)
+    startLoopRef.current()
   }, [])
 
   const togglePause = useCallback(() => {
     if (gsRef.current.over) return
     pausedRef.current = !pausedRef.current
     setPaused((p) => !p)
+    if (!pausedRef.current) startLoopRef.current()
   }, [])
 
   const exit = () => navigate({ name: 'detalle', id: 'tetris' })
@@ -452,7 +491,7 @@ export default function TetrisScreen({ navigate, user, onSaveScore, skin = DEFAU
                 height: '100%',
                 display: 'block',
                 border: '1px solid rgba(255,255,255,0.1)',
-                background: '#050510',
+                background: BOARD_BG,
               }}
             />
 
