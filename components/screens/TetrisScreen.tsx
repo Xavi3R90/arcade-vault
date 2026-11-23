@@ -312,7 +312,6 @@ export default function TetrisScreen({ navigate, user, onSaveScore, skin = DEFAU
   const [paused, setPaused] = useState(false)
   const isTouchMobile = useIsTouchMobile()
   const [over, setOver] = useState(false)
-  const [name, setName] = useState((user?.name ?? 'INVITADO').slice(0, 10).toUpperCase())
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -596,21 +595,25 @@ export default function TetrisScreen({ navigate, user, onSaveScore, skin = DEFAU
             <h2>FIN DEL JUEGO</h2>
             <div className="final-label">PUNTUACIÓN FINAL</div>
             <div className="final">{score.toLocaleString('es-ES')}</div>
-            {!saved ? (
+            {!user ? (
+              <div className="save-guest">
+                <p>INICIA SESIÓN PARA GUARDAR TU PUNTUACIÓN</p>
+                <button className="btn cyan" onClick={() => navigate({ name: 'auth' })}>
+                  INICIAR SESIÓN
+                </button>
+              </div>
+            ) : !saved ? (
               <div className="input-row">
-                <input
-                  value={name}
-                  maxLength={10}
-                  onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
-                  placeholder="TUS INICIALES"
-                />
+                <div className="save-player" aria-label="Jugador">
+                  {user.name}
+                </div>
                 <button
                   className="btn cyan"
                   onClick={() => {
                     onSaveScore({
                       game: 'tetris',
                       score: gsRef.current.score,
-                      name,
+                      name: user.name,
                       at: Date.now(),
                     })
                     setSaved(true)

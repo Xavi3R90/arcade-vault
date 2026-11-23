@@ -18,7 +18,6 @@ export default function GamePlayer({ games, id, user, navigate, onSaveScore }: G
   const [level, setLevel] = useState(1)
   const [paused, setPaused] = useState(false)
   const [over, setOver] = useState(false)
-  const [name, setName] = useState(user ? user.name : 'INVITADO')
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -50,7 +49,7 @@ export default function GamePlayer({ games, id, user, navigate, onSaveScore }: G
           <div className="hud-stat">
             <div className="l">Jugador</div>
             <div className="v" style={{ color: 'var(--ink)' }}>
-              {name}
+              {user?.name ?? 'INVITADO'}
             </div>
           </div>
           <div className="hud-stat">
@@ -122,17 +121,22 @@ export default function GamePlayer({ games, id, user, navigate, onSaveScore }: G
             <h2>FIN DEL JUEGO</h2>
             <div className="final-label">PUNTUACIÓN FINAL</div>
             <div className="final">{score.toLocaleString('es-ES')}</div>
-            {!saved ? (
+            {!user ? (
+              <div className="save-guest">
+                <p>INICIA SESIÓN PARA GUARDAR TU PUNTUACIÓN</p>
+                <button className="btn yellow" onClick={() => navigate({ name: 'auth' })}>
+                  INICIAR SESIÓN
+                </button>
+              </div>
+            ) : !saved ? (
               <div className="input-row">
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
-                  placeholder="TUS INICIALES"
-                />
+                <div className="save-player" aria-label="Jugador">
+                  {user.name}
+                </div>
                 <button
                   className="btn yellow"
                   onClick={() => {
-                    onSaveScore({ game: game.id, score, name, at: Date.now() })
+                    onSaveScore({ game: game.id, score, name: user.name, at: Date.now() })
                     setSaved(true)
                   }}
                 >

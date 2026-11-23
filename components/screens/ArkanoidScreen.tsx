@@ -356,7 +356,6 @@ export default function ArkanoidScreen({
   const [paused, setPaused] = useState(false)
   const isTouchMobile = useIsTouchMobile()
   const [over, setOver] = useState<'gameover' | 'win' | null>(null)
-  const [name, setName] = useState(user?.name ?? 'INVITADO')
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -693,18 +692,22 @@ export default function ArkanoidScreen({
             >
               {score.toLocaleString('es-ES')}
             </div>
-            {!saved ? (
+            {!user ? (
+              <div className="save-guest">
+                <p>INICIA SESIÓN PARA GUARDAR TU PUNTUACIÓN</p>
+                <button className="btn yellow" onClick={() => navigate({ name: 'auth' })}>
+                  INICIAR SESIÓN
+                </button>
+              </div>
+            ) : !saved ? (
               <div className="input-row">
-                <input
-                  value={name}
-                  maxLength={10}
-                  onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
-                  placeholder="TUS INICIALES"
-                />
+                <div className="save-player" aria-label="Jugador">
+                  {user.name}
+                </div>
                 <button
                   className="btn yellow"
                   onClick={() => {
-                    onSaveScore({ game: 'arkanoid', score, name, at: Date.now() })
+                    onSaveScore({ game: 'arkanoid', score, name: user.name, at: Date.now() })
                     setSaved(true)
                   }}
                 >

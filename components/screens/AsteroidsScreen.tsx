@@ -532,7 +532,6 @@ export default function AsteroidsScreen({
   const [paused, setPaused] = useState(false)
   const isTouchMobile = useIsTouchMobile()
   const [over, setOver] = useState(false)
-  const [name, setName] = useState(user?.name ?? 'INVITADO')
   const [saved, setSaved] = useState(false)
 
   // Último valor enviado a React por cada stat del HUD: solo se llama a setState
@@ -923,18 +922,22 @@ export default function AsteroidsScreen({
             >
               {score.toLocaleString('es-ES')}
             </div>
-            {!saved ? (
+            {!user ? (
+              <div className="save-guest">
+                <p>INICIA SESIÓN PARA GUARDAR TU PUNTUACIÓN</p>
+                <button className="btn yellow" onClick={() => navigate({ name: 'auth' })}>
+                  INICIAR SESIÓN
+                </button>
+              </div>
+            ) : !saved ? (
               <div className="input-row">
-                <input
-                  value={name}
-                  maxLength={10}
-                  onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
-                  placeholder="TUS INICIALES"
-                />
+                <div className="save-player" aria-label="Jugador">
+                  {user.name}
+                </div>
                 <button
                   className="btn yellow"
                   onClick={() => {
-                    onSaveScore({ game: 'asteroids', score, name, at: Date.now() })
+                    onSaveScore({ game: 'asteroids', score, name: user.name, at: Date.now() })
                     setSaved(true)
                   }}
                 >

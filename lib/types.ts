@@ -6,6 +6,7 @@ export type RouteName =
   | 'auth'
   | 'salon'
   | 'about'
+  | 'cuenta'
   | 'asteroids'
   | 'tetris'
   | 'arkanoid'
@@ -45,5 +46,8 @@ export interface SavedScore {
 }
 
 export interface User {
-  name: string
+  id: string // auth.users.id
+  name: string // profiles.username
+  email: string | null
+  hasPassword: boolean // identities incluye provider 'email'
 }
