@@ -43,12 +43,14 @@ app/
   layout.tsx            # Root layout
   globals.css           # Theme Tailwind v4 + covers CSS por juego (.cover-<slug>) + layout móvil (.game-mobile)
   api/contact/route.ts  # POST → Resend (requiere RESEND_API_KEY y CONTACT_TO_EMAIL)
+  auth/callback/route.ts # Canjea el código de Supabase (email/OAuth) y redirige a /?auth=confirmed|recovery|oauth|error — SPEC 12
 middleware.ts           # Refresco de sesión Supabase (createServerClient + auth.getUser)
 components/
   Nav.tsx, GameCard.tsx
   TouchControls.tsx     # Gamepad virtual (cruceta + A/B) para móvil — SPEC 10
   screens/              # Una pantalla por ruta: HomeScreen, Library, GameDetail,
-                        # GamePlayer, Auth, HallOfFame, AboutScreen, y la pantalla
+                        # GamePlayer, Auth (login/registro/recuperar/elige nombre),
+                        # AccountScreen (ruta 'cuenta'), HallOfFame, AboutScreen, y la pantalla
                         # de cada juego (AsteroidsScreen, TetrisScreen, ArkanoidScreen,
                         # SnakeScreen, FroggerScreen)
   games/                # Lógica/render de juego separada de la screen (FroggerGame.tsx, froggerSprites.ts)
@@ -58,11 +60,12 @@ lib/
   skins/<slug>.ts       # Paletas por juego para los 3 skins
   touch.ts              # TouchGameId, TOUCH_MAPPINGS (botón → tecla), dispatchKey
   useTouchMobile.ts     # useIsTouchMobile / useIsLandscape (media queries)
-  userStore.ts          # Usuario en localStorage vía useSyncExternalStore
+  authStore.ts          # Sesión Supabase + perfil (loading | guest | needs-username | authed) vía useSyncExternalStore — SPEC 12
+  authErrors.ts         # Errores de Supabase Auth traducidos al español + validación de username/contraseña
   supabase/client.ts    # createBrowserClient — uso cliente
   supabase/server.ts    # createServerClient — uso Server Components / Route Handlers
 scripts/perf/fps.mjs    # Medidor de FPS (npm run perf)
-specs/                  # Specs 01–11 (MVP UI, Home, About, Supabase, juegos, móvil, rendimiento)
+specs/                  # Specs 01–12 (MVP UI, Home, About, Supabase, juegos, móvil, rendimiento, auth)
   game-jam/<slug>/      # Specs generados por el agente game-jam (frogger, puas-express)
 references/
   implemented-games.md     # Catálogo de juegos jugables
@@ -83,7 +86,7 @@ references/
 
 ## Routing (cliente)
 
-El shell en `app/page.tsx` **no usa file-based routing** para las sub-pantallas: mantiene `useState<Route>` y renderiza la pantalla correspondiente según `route.name` (`'home' | 'games' | 'detalle' | 'player' | 'auth' | 'salon' | 'about' | '<slug-de-juego>'`). Al añadir un juego hay que:
+El shell en `app/page.tsx` **no usa file-based routing** para las sub-pantallas: mantiene `useState<Route>` y renderiza la pantalla correspondiente según `route.name` (`'home' | 'games' | 'detalle' | 'player' | 'auth' | 'salon' | 'about' | 'cuenta' | '<slug-de-juego>'`). La única excepción es `?auth=<motivo>`, que deja `app/auth/callback/route.ts` y el shell lee una vez para abrir la pantalla de auth correcta. Si la sesión está en `needs-username`, el shell muestra siempre "Elige tu nombre". Al añadir un juego hay que:
 
 1. Ampliar el union `RouteName` en `lib/types.ts`.
 2. Importar la screen en `app/page.tsx`, añadir su `else if` y su slug a `GAME_ROUTES` (pone `data-game-route`, que oculta el Nav en móvil).
@@ -91,10 +94,12 @@ El shell en `app/page.tsx` **no usa file-based routing** para las sub-pantallas:
 
 ## Supabase
 
-- Tablas: `games` (catálogo con `id`, `title`, `short`, `long`, `cat`, `cover`, `color`, `best`, `plays`, `play_route`) y `scores` (`game_id`, `player_name`, `score`).
+- Tablas: `games` (catálogo con `id`, `title`, `short`, `long`, `cat`, `cover`, `color`, `best`, `plays`, `play_route`), `scores` (`game_id`, `player_name`, `score`, `user_id`) y `profiles` (`id` = `auth.users.id`, `username` único `^[A-Z0-9_]{3,10}$`, null hasta que un usuario OAuth lo elige).
 - El `color` de `games` está restringido por CHECK a `cyan | magenta | yellow | green`.
-- Para insertar un juego nuevo, usar `mcp__supabase__apply_migration` con nombre `NNN_add_<slug>_game` — **no** crear archivos SQL locales (ver SPEC 06).
-- Scores se guardan vía `createClient().from('scores').insert(...)` desde el handler `handleSaveScore` en `app/page.tsx`.
+- Para insertar un juego nuevo, usar `mcp__supabase__apply_migration` con nombre `NNN_add_<slug>_game` — **no** crear archivos SQL locales (ver SPEC 06). Comprobar antes el siguiente número libre en `supabase_migrations.schema_migrations`.
+- Auth (SPEC 12): email + contraseña con confirmación, Google y GitHub. El trigger `on_auth_user_created` crea el perfil.
+- RLS activa en las tres tablas: lectura pública; `scores` solo admite insert autenticado con `user_id = auth.uid()`; `profiles` solo update de la fila propia; `games` sin escritura desde cliente.
+- Scores se guardan vía `createClient().from('scores').insert(...)` desde `handleSaveScore` en `app/page.tsx`, solo si hay usuario. El trigger `scores_set_player_name` fija `player_name` desde el perfil, y `profiles_propagate_username` lo actualiza si el jugador cambia de nombre.
 
 ## Env vars
 
@@ -115,7 +120,7 @@ CONTACT_TO_EMAIL=
 2. Revisar y marcar el spec como `Aprobado`.
 3. Lanzar `/spec-impl NN-add-<slug>` — crea rama, implementa paso a paso. Alternativa: `/spec-impl-game NN-add-<slug>`, que además encadena `skin-designer` y luego `mobile-porter`.
 4. (Opcional) Pasar `game-performance-booster` para validar FPS en móvil.
-5. Convenciones duras: canvas 800×600 lógico escalado por CSS (`aspect-ratio: 800/600`), componente `components/screens/<Slug>Screen.tsx` (lógica pesada opcionalmente en `components/games/`), cover `.cover-<slug>` en `app/globals.css`, props `{ navigate, user, onSaveScore }`, cleanup de RAF y listeners en `useEffect`, modal de game over con input (máx. 10 chars, mayúsculas), 3 skins en `lib/skins/<slug>.ts` (classic/neon/retro), layout móvil SPEC 10 (`.game-mobile` + `TouchControls`) y objetivo de rendimiento SPEC 11.
+5. Convenciones duras: canvas 800×600 lógico escalado por CSS (`aspect-ratio: 800/600`), componente `components/screens/<Slug>Screen.tsx` (lógica pesada opcionalmente en `components/games/`), cover `.cover-<slug>` en `app/globals.css`, props `{ navigate, user, onSaveScore }`, cleanup de RAF y listeners en `useEffect`, modal de game over sin input de nombre (SPEC 12: con `user` muestra `user.name` fijo + GUARDAR PUNTUACIÓN con `name: user.name`; sin `user` muestra "INICIA SESIÓN PARA GUARDAR TU PUNTUACIÓN" + botón INICIAR SESIÓN → `navigate({ name: 'auth' })`; clases `.save-player` / `.save-guest`), 3 skins en `lib/skins/<slug>.ts` (classic/neon/retro), layout móvil SPEC 10 (`.game-mobile` + `TouchControls`) y objetivo de rendimiento SPEC 11.
 
 ## Hooks
 

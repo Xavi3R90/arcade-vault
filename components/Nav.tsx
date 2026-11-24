@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Route, User } from '@/lib/types'
 import { SKINS, type SkinId } from '@/lib/skins'
 
@@ -8,6 +8,8 @@ interface NavProps {
   route: Route
   navigate: (r: Route) => void
   user: User | null
+  // Mientras la sesión se resuelve no se pinta ni "Iniciar Sesión" ni el nombre (evita parpadeo).
+  authLoading: boolean
   onSignOut: () => void
   skin: SkinId
   onSkinChange: (s: SkinId) => void
@@ -50,8 +52,41 @@ function SkinSwitch({
   )
 }
 
-export default function Nav({ route, navigate, user, onSignOut, skin, onSkinChange }: NavProps) {
+export default function Nav({
+  route,
+  navigate,
+  user,
+  authLoading,
+  onSignOut,
+  skin,
+  onSkinChange,
+}: NavProps) {
   const [open, setOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Menú de usuario: se cierra con Esc o con un clic fuera.
+  useEffect(() => {
+    if (!menuOpen) return
+    const onPointer = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
+
+  const signOut = () => {
+    setMenuOpen(false)
+    setOpen(false)
+    onSignOut()
+  }
 
   const isActive = (name: string) =>
     route.name === name ||
@@ -60,6 +95,7 @@ export default function Nav({ route, navigate, user, onSignOut, skin, onSkinChan
 
   const go = (r: Route) => {
     setOpen(false)
+    setMenuOpen(false)
     navigate(r)
   }
 
@@ -94,10 +130,34 @@ export default function Nav({ route, navigate, user, onSignOut, skin, onSkinChan
           <span>CRÉDITOS · 03</span>
         </div>
 
-        {user ? (
-          <button className="btn ghost auth-btn" onClick={onSignOut}>
-            {user.name} ▾
-          </button>
+        {authLoading ? (
+          <span className="auth-btn auth-btn-placeholder" aria-hidden="true" />
+        ) : user ? (
+          <div className="user-menu" ref={menuRef}>
+            <button
+              type="button"
+              className="btn ghost auth-btn"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((o) => !o)}
+            >
+              {user.name} ▾
+            </button>
+            {menuOpen && (
+              <div className="user-menu-list" role="menu">
+                <div className="user-menu-head">
+                  <span className="pixel neon-cyan">{user.name}</span>
+                  {user.email && <span className="user-menu-email">{user.email}</span>}
+                </div>
+                <button type="button" role="menuitem" onClick={() => go({ name: 'cuenta' })}>
+                  MI CUENTA
+                </button>
+                <button type="button" role="menuitem" onClick={signOut}>
+                  CERRAR SESIÓN
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
           <button className="btn auth-btn" onClick={() => go({ name: 'auth' })}>
             Iniciar Sesión
@@ -126,9 +186,23 @@ export default function Nav({ route, navigate, user, onSignOut, skin, onSkinChan
         <a className={isActive('about') ? 'active' : ''} onClick={() => go({ name: 'about' })}>
           Acerca
         </a>
-        <a className={isActive('auth') ? 'active' : ''} onClick={() => go({ name: 'auth' })}>
-          {user ? 'Cuenta' : 'Iniciar Sesión'}
-        </a>
+        {user ? (
+          <>
+            <a
+              className={isActive('cuenta') ? 'active' : ''}
+              onClick={() => go({ name: 'cuenta' })}
+            >
+              Mi cuenta
+            </a>
+            <a onClick={signOut}>Cerrar sesión</a>
+          </>
+        ) : (
+          !authLoading && (
+            <a className={isActive('auth') ? 'active' : ''} onClick={() => go({ name: 'auth' })}>
+              Iniciar Sesión
+            </a>
+          )
+        )}
         <SkinSwitch skin={skin} onSkinChange={onSkinChange} className="skin-switch-panel" />
         <div style={{ flex: 1 }} />
         <div

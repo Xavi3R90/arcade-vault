@@ -9,25 +9,8 @@ import TouchControls from '@/components/TouchControls'
 import { TOUCH_MAPPINGS } from '@/lib/touch'
 import { useIsTouchMobile } from '@/lib/useTouchMobile'
 
-const NAME_KEY = 'av_player_name'
 const START_LIVES = 3
 const ex = (p: GamePalette, key: string) => p.extra[key] as string
-
-function readStoredName(): string | null {
-  try {
-    return localStorage.getItem(NAME_KEY)
-  } catch {
-    return null
-  }
-}
-
-function storeName(name: string) {
-  try {
-    localStorage.setItem(NAME_KEY, name)
-  } catch {
-    // almacenamiento no disponible: el nombre simplemente no se recuerda
-  }
-}
 
 interface Props {
   navigate: (r: Route) => void
@@ -43,7 +26,6 @@ export default function FroggerScreen({ navigate, user, onSaveScore, skin = DEFA
   const [level, setLevel] = useState(1)
   const [paused, setPaused] = useState(false)
   const [over, setOver] = useState(false)
-  const [name, setName] = useState('')
   const [saved, setSaved] = useState(false)
   const [gameKey, setGameKey] = useState(0)
   const isTouchMobile = useIsTouchMobile()
@@ -69,14 +51,10 @@ export default function FroggerScreen({ navigate, user, onSaveScore, skin = DEFA
   }, [isTouchMobile])
 
   // Callbacks estables: FroggerGame los guarda en un ref, pero así evitamos efectos extra.
-  const handleGameOver = useCallback(
-    (finalScore: number) => {
-      setScore(finalScore)
-      setName((readStoredName() ?? user?.name ?? 'INVITADO').toUpperCase().slice(0, 10))
-      setOver(true)
-    },
-    [user],
-  )
+  const handleGameOver = useCallback((finalScore: number) => {
+    setScore(finalScore)
+    setOver(true)
+  }, [])
 
   const togglePause = () => {
     if (!over) setPaused((p) => !p)
@@ -85,11 +63,9 @@ export default function FroggerScreen({ navigate, user, onSaveScore, skin = DEFA
   const exit = () => navigate({ name: 'detalle', id: 'frogger' })
 
   const saveScore = () => {
-    if (saved) return
-    const finalName = name.trim() || 'INVITADO'
+    if (saved || !user) return
     setSaved(true) // deshabilita el botón antes del insert: sin doble envío
-    storeName(finalName)
-    onSaveScore({ game: 'frogger', score, name: finalName, at: Date.now() })
+    onSaveScore({ game: 'frogger', score, name: user.name, at: Date.now() })
   }
 
   const playAgain = () => {
@@ -227,14 +203,18 @@ export default function FroggerScreen({ navigate, user, onSaveScore, skin = DEFA
             >
               {score.toLocaleString('es-ES')}
             </div>
-            {!saved ? (
+            {!user ? (
+              <div className="save-guest">
+                <p>INICIA SESIÓN PARA GUARDAR TU PUNTUACIÓN</p>
+                <button className="btn yellow" onClick={() => navigate({ name: 'auth' })}>
+                  INICIAR SESIÓN
+                </button>
+              </div>
+            ) : !saved ? (
               <div className="input-row">
-                <input
-                  value={name}
-                  maxLength={10}
-                  onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
-                  placeholder="TUS INICIALES"
-                />
+                <div className="save-player" aria-label="Jugador">
+                  {user.name}
+                </div>
                 <button className="btn yellow" onClick={saveScore} disabled={saved}>
                   GUARDAR PUNTUACIÓN
                 </button>

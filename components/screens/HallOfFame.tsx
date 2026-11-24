@@ -55,7 +55,7 @@ export default function HallOfFame({ games, user, navigate }: HallOfFameProps) {
       .from('scores')
       .select('score')
       .eq('game_id', tab)
-      .eq('player_name', user.name)
+      .eq('user_id', user.id)
       .order('score', { ascending: false })
       .limit(1)
       .then(({ data }) => {

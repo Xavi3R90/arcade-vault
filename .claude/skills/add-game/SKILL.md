@@ -112,7 +112,7 @@ Cubrir estos puntos en un bloque:
 
 Esta fase es mayormente informativa. Confirmar con una sola pregunta bloqueante:
 
-> El juego guardará puntuaciones en la tabla `scores` de Supabase al terminar la partida usando `onSaveScore({ game: '<id>', score, name, at: Date.now() })`. El modal de game over seguirá el patrón de AsteroidsScreen: input de nombre (máx. 10 chars, mayúsculas), botón "GUARDAR PUNTUACIÓN", botón "JUGAR DE NUEVO" y botón "VOLVER AL VAULT". Una vez la fila exista en `games`, el Salón de la Fama mostrará una pestaña automática y GameDetail mostrará el leaderboard del juego. ¿Algún cambio a este comportamiento estándar?
+> El juego guardará puntuaciones en la tabla `scores` de Supabase al terminar la partida usando `onSaveScore({ game: '<id>', score, name: user.name, at: Date.now() })`. Solo los usuarios autenticados guardan (SPEC 12). El modal de game over seguirá el patrón de AsteroidsScreen, sin input de nombre. Con `user` muestra `user.name` fijo (`.save-player`) y el botón "GUARDAR PUNTUACIÓN". Sin `user` muestra "INICIA SESIÓN PARA GUARDAR TU PUNTUACIÓN" y el botón "INICIAR SESIÓN" → `navigate({ name: 'auth' })` (`.save-guest`). En ambos casos añade "JUGAR DE NUEVO" y "VOLVER AL VAULT". Una vez la fila exista en `games`, el Salón de la Fama mostrará una pestaña automática y GameDetail mostrará el leaderboard del juego. ¿Algún cambio a este comportamiento estándar?
 
 Si el usuario no quiere modal de game over (ej. juego de puntuación continua sin fin), recoger el comportamiento alternativo y reflejarlo en el spec.
 
@@ -156,7 +156,7 @@ Incluir la fila exacta del juego con todos los campos de la tabla `games`. Tambi
 **Plan de implementación — estos 5 pasos exactos (adaptar slug y nombre):**
 
 1. **Actualizar `lib/types.ts`:** añadir `'<slug>'` al union `RouteName`. Test: `npm run build` sin errores de tipo.
-2. **Crear `components/screens/<Slug>Screen.tsx`:** traducción completa del juego al patrón React — canvas `width=800 height=600` escalado por CSS (`width: 100%; max-width: 800px; aspect-ratio: 800/600`), lógica en clases TypeScript (o funciones puras), loop con `requestAnimationFrame` + cleanup, listeners `keydown/keyup` en `useEffect` + cleanup, HUD en React (`position: absolute`), modal de game over con input de nombre + botones estándar. Props: `{ navigate: (r: Route) => void; user: User | null; onSaveScore: (entry: SavedScore) => void }`. Test: navegar a la ruta `'<slug>'` renderiza el canvas y el juego arranca.
+2. **Crear `components/screens/<Slug>Screen.tsx`:** traducción completa del juego al patrón React — canvas `width=800 height=600` escalado por CSS (`width: 100%; max-width: 800px; aspect-ratio: 800/600`), lógica en clases TypeScript (o funciones puras), loop con `requestAnimationFrame` + cleanup, listeners `keydown/keyup` en `useEffect` + cleanup, HUD en React (`position: absolute`), modal de game over sin input de nombre (nombre fijo de `user.name` con sesión, CTA "INICIAR SESIÓN" sin sesión — SPEC 12) + botones estándar. Props: `{ navigate: (r: Route) => void; user: User | null; onSaveScore: (entry: SavedScore) => void }`. Test: navegar a la ruta `'<slug>'` renderiza el canvas y el juego arranca.
 3. **Añadir `.cover-<slug>` en `app/globals.css`:** diseño de la cover en CSS puro — fondo con gradiente radial, forma icónica del juego con `clip-path` o `::before/::after`, paleta de color `<color>`. Test: la card del juego en Library muestra cover visible y coherente con las demás.
 4. **Registrar la ruta en `app/page.tsx`:** importar `<Slug>Screen`; añadir `} else if (route.name === '<slug>') { screen = <<Slug>Screen navigate={navigate} user={user} onSaveScore={handleSaveScore} />; }`. Test: `npm run dev` arranca sin errores.
 5. **Insertar fila en tabla `games` vía MCP:** ejecutar `mcp__supabase__apply_migration` con nombre de migración `NNN_add_<slug>_game` y contenido: `INSERT INTO public.games (id, title, short, long, cat, cover, color, best, plays, play_route) VALUES ('<slug>', '<TITLE>', '<short>', '<long>', '<CAT>', 'cover-<slug>', '<color>', <best>, '<plays>', '<slug>');`. **No crear archivo SQL local.** Test: la tabla `games` muestra la nueva fila; la Library carga y muestra la card del juego.
@@ -169,8 +169,9 @@ Lista booleana verificable. Incluir al menos:
 - [ ] El botón "JUGAR AHORA" en la ficha del juego navega a la ruta `'<slug>'`.
 - [ ] La ruta `'<slug>'` renderiza el canvas con el juego activo.
 - [ ] [Controles del juego — un ítem por tecla principal]
-- [ ] Game over muestra el modal con input de nombre.
-- [ ] "GUARDAR PUNTUACIÓN" inserta una fila en la tabla `scores` de Supabase.
+- [ ] Game over con sesión muestra el modal con el nombre del perfil (no editable).
+- [ ] Game over sin sesión muestra "INICIA SESIÓN PARA GUARDAR TU PUNTUACIÓN" y no ofrece guardar.
+- [ ] "GUARDAR PUNTUACIÓN" inserta una fila en la tabla `scores` de Supabase con el `user_id` del jugador.
 - [ ] El score aparece en la pestaña del Salón de la Fama para este juego.
 - [ ] `npm run build` termina sin errores de TypeScript.
 - [ ] No hay errores de consola al navegar por todas las pantallas.

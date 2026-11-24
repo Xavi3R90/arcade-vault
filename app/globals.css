@@ -279,6 +279,58 @@ a {
 .av-nav .hamburger {
   display: none;
 }
+/* SPEC 12: menú del usuario */
+.av-nav .auth-btn-placeholder {
+  display: inline-block;
+  width: 120px;
+  height: 36px;
+}
+.user-menu {
+  position: relative;
+}
+.user-menu-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 70;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--cyan);
+  background: var(--bg-2);
+  box-shadow: 0 0 18px rgba(0, 245, 255, 0.2);
+}
+.user-menu-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-bottom: 1px dashed var(--line-2);
+  font-size: 11px;
+}
+.user-menu-email {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  overflow-wrap: anywhere;
+}
+.user-menu-list button {
+  padding: 12px 16px;
+  background: none;
+  border: 0;
+  text-align: left;
+  font-family: var(--pixel);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+.user-menu-list button:hover,
+.user-menu-list button:focus-visible {
+  color: var(--cyan);
+  background: rgba(0, 245, 255, 0.06);
+  outline: none;
+}
 
 /* ===== skin selector (CLÁSICO / NEÓN / RETRO) ===== */
 .skin-switch {
@@ -1630,6 +1682,32 @@ a {
   border-color: var(--cyan);
   box-shadow: 0 0 10px rgba(0, 245, 255, 0.35);
 }
+/* SPEC 12: el nombre sale del perfil (no editable); el invitado no guarda */
+.modal .input-row .save-player {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 12px;
+  background: var(--bg);
+  border: 1px dashed var(--line);
+  font-family: var(--mono);
+  color: var(--ink);
+  letter-spacing: 0.08em;
+}
+.modal .save-guest {
+  margin: 22px 0 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.modal .save-guest p {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+}
 .modal .actions {
   display: flex;
   gap: 10px;
@@ -1664,6 +1742,114 @@ a {
 }
 
 /* ===== auth ===== */
+/* SPEC 12: error bajo el formulario y aviso global tras el callback */
+.auth-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--magenta);
+  color: var(--magenta);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  line-height: 1.5;
+  background: rgba(255, 0, 110, 0.08);
+}
+.auth-hint {
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+}
+.auth-link {
+  display: block;
+  margin: 12px auto 0;
+  padding: 4px;
+  background: none;
+  border: 0;
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.auth-link:hover {
+  color: var(--ink);
+}
+.auth-link:focus-visible {
+  outline: 1px solid var(--cyan);
+  outline-offset: 2px;
+}
+.auth-sent {
+  margin: 8px 0 18px;
+  text-align: center;
+  line-height: 1.6;
+}
+.auth-sent h3 {
+  font-family: var(--pixel);
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+.auth-sent p {
+  color: var(--ink-dim, var(--ink));
+  font-size: 14px;
+}
+.auth-sent strong {
+  color: var(--cyan);
+  word-break: break-all;
+}
+/* SPEC 12: pantalla Mi cuenta */
+.account-email {
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+  overflow-wrap: anywhere;
+}
+.account-section {
+  padding: 18px 0;
+  border-top: 1px dashed var(--line-2);
+}
+.account-section h3 {
+  font-family: var(--pixel);
+  font-size: 11px;
+  color: var(--cyan);
+  margin-bottom: 8px;
+}
+.account-section > .auth-hint {
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+.account-ok {
+  margin-top: 12px;
+  font-family: var(--pixel);
+  font-size: 10px;
+  color: var(--green);
+  text-shadow: 0 0 8px var(--green);
+}
+.account-oauth {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+}
+.auth-notice {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  z-index: 60;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  padding: 12px 18px;
+  border: 1px solid var(--green);
+  background: rgba(0, 0, 0, 0.85);
+  color: var(--green);
+  font-family: var(--pixel);
+  font-size: 11px;
+  text-shadow: 0 0 8px var(--green);
+  cursor: pointer;
+}
 .av-auth-wrap {
   display: flex;
   align-items: center;
