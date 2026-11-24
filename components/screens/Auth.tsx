@@ -77,12 +77,18 @@ export default function Auth({
       setError(MSG.usernameTaken)
       return
     }
-    const { error: err } = await supabase.auth.signUp({
+    const { data, error: err } = await supabase.auth.signUp({
       email: email.trim(),
       password: pass,
       options: { data: { username }, emailRedirectTo: callbackUrl('confirmed') },
     })
     if (err) throw err
+    // Email ya registrado (p. ej. con Google/GitHub): Supabase responde 200 con un usuario
+    // sin identidades y NO envía correo (protección contra enumeración de emails).
+    if (data.user && data.user.identities?.length === 0) {
+      setError(MSG.emailTaken)
+      return
+    }
     setSentTo(email.trim())
     setSentKind('signup')
     setPass('')

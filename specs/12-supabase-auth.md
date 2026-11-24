@@ -1,6 +1,6 @@
 # SPEC 12 — Registro, login y autenticación con Supabase
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** SPEC 01, SPEC 04, SPEC 06
 > **Date:** 2026-11-23
 > **Objetivo:** Sustituir el login simulado por autenticación real con Supabase (email + contraseña, Google y GitHub), con perfiles de jugador únicos y puntuaciones que solo pueden guardar los usuarios autenticados.
